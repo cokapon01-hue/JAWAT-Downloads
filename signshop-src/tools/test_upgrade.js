@@ -16,7 +16,9 @@ const copyDir = (a, b) => { fs.rmSync(b, { recursive: true, force: true }); fs.c
   console.log('old version:', await p.textContent('#appVer'));
   // old build: user had typed another shop name and saved a quote with a payment
   await p.goto(URL + '#prices'); await p.waitForTimeout(200);
-  if (await p.$('#sName')) { await p.fill('#sName', 'ชื่อเก่าที่พิมพ์ไว้'); await p.fill('#sTax', '0405560001234'); await p.click('#saveCfg'); }
+  if (await p.$('#sName')) await p.fill('#sName', 'ชื่อเก่าที่พิมพ์ไว้');
+  if (await p.$('#sAddr')) await p.fill('#sAddr', 'ที่อยู่เก่าที่พิมพ์ไว้');
+  await p.fill('#sTax', '0405560001234'); await p.click('#saveCfg'); await p.waitForTimeout(200);
   await p.goto(URL + '#calc'); await p.fill('#cW', '300'); await p.fill('#cH', '100'); await p.fill('#cQty', '2'); await p.click('#addToQuote');
   await p.goto(URL + '#quote'); await p.waitForTimeout(300);
   await p.fill('#qName', 'ร้านกาแฟทดสอบ'); await p.click('#addPay'); await p.waitForTimeout(400);
@@ -30,9 +32,9 @@ const copyDir = (a, b) => { fs.rmSync(b, { recursive: true, force: true }); fs.c
   console.log('header:', await p.textContent('#hdrShop'), '| header logo:', await p.evaluate(() => document.getElementById('hdrLogo').naturalWidth));
   console.log('tax id kept:', await p.inputValue('#sTax'), '| name inputs left:', await p.$$eval('#sName, #sCompany, #sLogo', x => x.length));
   // try to override the name through saved settings: must stay locked
-  await p.evaluate(() => { const c = JSON.parse(localStorage.getItem('signq:config')); c.shop.name = 'ชื่ออื่น'; c.shop.logo = ''; localStorage.setItem('signq:config', JSON.stringify(c)); });
+  await p.evaluate(() => { const c = JSON.parse(localStorage.getItem('signq:config')); c.shop.name = 'ชื่ออื่น'; c.shop.logo = ''; c.shop.address = 'ที่อยู่อื่น'; localStorage.setItem('signq:config', JSON.stringify(c)); });
   await p.reload(); await p.waitForTimeout(800);
-  console.log('after tamper header:', await p.textContent('#hdrShop'));
+  console.log('after tamper header:', await p.textContent('#hdrShop'), '| locked address:', await p.textContent('#lockedAddr').catch(() => 'n/a'));
   await p.goto(URL + '#history'); await p.waitForTimeout(300); await p.click('[data-open]'); await p.waitForTimeout(400);
   await p.locator('#paper').screenshot({ path: path.join(SHOTS, 'quote-brand.png') });
   await p.click('[data-rcpt="0"]'); await p.waitForTimeout(300);
