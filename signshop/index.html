@@ -6,7 +6,7 @@
 <title>Total ad Sign · คิดราคาป้าย</title>
 <meta name="description" content="คิดราคาป้าย ออกใบเสนอราคา ใบสั่งงานช่าง ติดตามมัดจำ สำหรับร้านป้าย">
 <meta name="theme-color" content="#0a74b8">
-<meta name="app-version" content="1.3.0">
+<meta name="app-version" content="1.4.0">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -280,17 +280,22 @@ input[type="number"] { font-variant-numeric: tabular-nums; }
 /* settings */
 .set-table { display: flex; flex-direction: column; gap: 6px; }
 .set-row { display: grid; gap: 6px; align-items: center; }
-.set-row.mat-r { grid-template-columns: minmax(0, 1fr) 110px 110px 36px; }
-.set-row.add-r { grid-template-columns: minmax(0, 1fr) 150px 100px 36px; }
-.set-row.svc-r { grid-template-columns: minmax(0, 1fr) 110px 36px; }
+.set-row.mat-r { grid-template-columns: 30px minmax(0, 1fr) 110px 110px 36px; }
+.set-row.add-r { grid-template-columns: 30px minmax(0, 1fr) 150px 100px 36px; }
+.set-row.svc-r { grid-template-columns: 30px minmax(0, 1fr) 110px 36px; }
+.grip { border: 0; background: none; color: var(--muted); cursor: grab; touch-action: none; padding: 8px 2px; font-size: 1.05rem; line-height: 1; letter-spacing: -3px; border-radius: 6px; user-select: none; -webkit-user-select: none; }
+.grip:hover { color: var(--accent); background: var(--accent-soft); }
+.grip:active { cursor: grabbing; }
+.set-row.dragging { position: relative; z-index: 3; background: var(--surface); border-radius: 8px; box-shadow: 0 6px 18px rgba(0,0,0,.18); outline: 2px solid var(--accent); }
+.set-table.is-dragging, .set-table.is-dragging * { user-select: none; -webkit-user-select: none; }
 .set-row.head { font-size: .78rem; color: var(--muted); font-weight: 600; }
 .set-row input, .set-row select { padding: 8px 10px; }
 .set-row .rm { border: 0; background: none; cursor: pointer; color: var(--danger); font-size: 1.3rem; }
 @media (max-width: 560px) {
-  .set-row.mat-r { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 36px; }
-  .set-row.mat-r > :first-child { grid-column: 1 / -1; }
-  .set-row.add-r { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 36px; }
-  .set-row.add-r > :first-child { grid-column: 1 / -1; }
+  .set-row.mat-r, .set-row.add-r { grid-template-columns: 30px minmax(0, 1fr) minmax(0, 1fr) 36px; }
+  .set-row.mat-r > .grip, .set-row.add-r > .grip { grid-row: span 2; align-self: stretch; }
+  .set-row.mat-r > :nth-child(2), .set-row.add-r > :nth-child(2) { grid-column: 2 / -1; }
+  .set-row.mat-r, .set-row.add-r { padding-bottom: 6px; border-bottom: 1px dashed var(--line); }
   .set-row.head { display: none; }
 }
 .savebar { position: sticky; bottom: 0; padding-block: 12px calc(12px + env(safe-area-inset-bottom, 0px)); background: var(--bg); display: flex; gap: 10px; align-items: center; flex-wrap: wrap; border-top: 1px solid var(--line); }
@@ -641,8 +646,8 @@ const DEFAULT_CONFIG = {
     { id: 'lightbox', name: 'กล่องไฟ (หน้าป้ายอะคริลิก)', price: 6500, min: 3500 }
   ],
   addons: [
-    { id: 'eyelet', name: 'เจาะตาไก่', type: 'eyelet', price: 5 },
-    { id: 'hem', name: 'พับขอบ / เชื่อมขอบ', type: 'm', price: 20 },
+    { id: 'eyelet', name: 'เจาะตาไก่', type: 'eyelet', price: 0 },
+    { id: 'hem', name: 'พับขอบ / เชื่อมขอบ', type: 'm', price: 0 },
     { id: 'laminate', name: 'เคลือบผิว (ด้าน/เงา)', type: 'sqm', price: 120 },
     { id: 'wood', name: 'โครงไม้', type: 'sqm', price: 350 },
     { id: 'steel', name: 'โครงเหล็กกล่อง', type: 'sqm', price: 650 }
@@ -670,6 +675,10 @@ function normalizeCfg(c) {
   c.shop = Object.assign({}, d.shop, c.shop || {}, LOCKED_SHOP);
   for (const k of ['materials', 'addons', 'services']) if (!Array.isArray(c[k])) c[k] = clone(d[k]);
   if (!Array.isArray(c.customers)) c.customers = [];
+  if (!c.freeEyeletHem) {  // v1.4.0: the shop no longer charges for eyelets or hem folding (one-time change)
+    c.addons.forEach(a => { if (a.id === 'eyelet' || a.id === 'hem') a.price = 0; });
+    c.freeEyeletHem = true;
+  }
   c.customers.forEach(cu => { if (!cu.rates || typeof cu.rates !== 'object') cu.rates = {}; });
   return c;
 }
@@ -682,7 +691,7 @@ function sampleDraft() {
   q.example = true;
   q.customer = { name: 'ร้านกาแฟบ้านสวน (ตัวอย่าง)', phone: '08x-xxx-xxxx', addr: 'หน้าร้าน ติดถนนใหญ่' };
   q.items = [
-    { id: uid(), desc: 'ไวนิล พิมพ์อิงค์เจ็ท', detail: 'ขนาด 120×240 ซม. (2.88 ตร.ม.) · เจาะตาไก่ 16 ตัว', qty: 1, price: 600, size: '120×240 ซม.', mat: 'ไวนิล พิมพ์อิงค์เจ็ท', finish: 'เจาะตาไก่ 16 ตัว', area: 2.88 },
+    { id: uid(), desc: 'ไวนิล พิมพ์อิงค์เจ็ท', detail: 'ขนาด 120×240 ซม. (2.88 ตร.ม.) · เจาะตาไก่ 16 ตัว', qty: 1, price: 520, size: '120×240 ซม.', mat: 'ไวนิล พิมพ์อิงค์เจ็ท', finish: 'เจาะตาไก่ 16 ตัว', area: 2.88 },
     { id: uid(), desc: 'สติกเกอร์ฝ้า (ติดกระจก)', detail: 'ขนาด 80×200 ซม. (1.60 ตร.ม.)', qty: 2, price: 720, size: '80×200 ซม.', mat: 'สติกเกอร์ฝ้า (ติดกระจก)', finish: '', area: 1.6 },
     { id: uid(), desc: 'ค่าติดตั้ง', detail: '', qty: 1, price: 500 }
   ];
@@ -725,6 +734,7 @@ function compute(c = calcS, plain = false) {
     else if (a.type === 'pc') { q = 1; note = `${fmt0(a.price)} ต่อชิ้น`; }
     else if (a.type === 'eyelet') { eye = eyeletGrid(wcm, hcm, c.sp); q = area > 0 ? eye.count : 0; note = `${q} ตัว × ${fmt0(a.price)}`; }
     const amt = q * num(a.price);
+    if (!num(a.price)) note = (a.type === 'eyelet' ? `${q} ตัว · ` : '') + 'รวมในราคาแล้ว';
     lines.push({ label: a.name, note, amt });
     extras.push(a.type === 'eyelet' ? `${a.name} ${q} ตัว` : a.name);
   }
@@ -766,7 +776,7 @@ function renderMatList() {
       <b>${esc(m.name)}</b><span>${custRate(cuSel, m.id) && (calcS.ov || 'none') === 'none' ? `<s>${fmt0(m.price)}</s> <b class="cr">${fmt0(custRate(cuSel, m.id))}</b>` : fmt0(m.price)} บาท / ตร.ม.${num(m.min) ? ` · ขั้นต่ำ ${fmt0(m.min)}` : ''}</span></label>`).join('');
   $('#addonList').innerHTML = config.addons.map(a => `
     <label class="addon"><input type="checkbox" value="${esc(a.id)}" ${calcS.addons.includes(a.id) ? 'checked' : ''}>
-      <span class="nm">${esc(a.name)}</span><span class="pr">${fmt0(a.price)} บาท ${esc(ADDON_TYPES[a.type] || '')}</span></label>`).join('');
+      <span class="nm">${esc(a.name)}</span><span class="pr">${num(a.price) ? `${fmt0(a.price)} บาท ${esc(ADDON_TYPES[a.type] || '')}` : 'รวมในราคาแล้ว'}</span></label>`).join('');
 }
 function renderCalcInputs() {
   $('#cW').value = calcS.w; $('#cH').value = calcS.h; $('#cQty').value = calcS.qty; $('#cSp').value = calcS.sp;
@@ -1076,19 +1086,22 @@ function renderHistory() {
 /* ---------- prices editor ---------- */
 function renderSettings() {
   const c = cfgDraft;
-  $('#setMats').innerHTML = `<div class="set-row mat-r head"><span>ชื่อวัสดุ</span><span>บาท/ตร.ม.</span><span>ขั้นต่ำ/ชิ้น</span><span></span></div>` +
+  $('#setMats').innerHTML = `<div class="set-row mat-r head"><span></span><span>ชื่อวัสดุ</span><span>บาท/ตร.ม.</span><span>ขั้นต่ำ/ชิ้น</span><span></span></div>` +
     c.materials.map((m, i) => `<div class="set-row mat-r">
+      <button class="grip" type="button" data-grip="materials" data-i="${i}" aria-label="ลากหรือกดลูกศรขึ้นลงเพื่อย้าย ${esc(m.name)}" title="ลากเพื่อย้าย">⋮⋮</button>
       <input type="text" data-list="materials" data-i="${i}" data-k="name" value="${esc(m.name)}" aria-label="ชื่อวัสดุ ${i + 1}">
       <input type="number" min="0" data-list="materials" data-i="${i}" data-k="price" value="${esc(m.price)}" aria-label="ราคาต่อตารางเมตร ${esc(m.name)}">
       <input type="number" min="0" data-list="materials" data-i="${i}" data-k="min" value="${esc(m.min)}" aria-label="ขั้นต่ำ ${esc(m.name)}">
       <button class="rm" type="button" data-rmrow="materials" data-i="${i}" aria-label="ลบ ${esc(m.name)}">×</button></div>`).join('');
-  $('#setAddons').innerHTML = `<div class="set-row add-r head"><span>งานเสริม</span><span>คิดราคา</span><span>บาท</span><span></span></div>` +
+  $('#setAddons').innerHTML = `<div class="set-row add-r head"><span></span><span>งานเสริม</span><span>คิดราคา</span><span>บาท</span><span></span></div>` +
     c.addons.map((a, i) => `<div class="set-row add-r">
+      <button class="grip" type="button" data-grip="addons" data-i="${i}" aria-label="ลากหรือกดลูกศรขึ้นลงเพื่อย้าย ${esc(a.name)}" title="ลากเพื่อย้าย">⋮⋮</button>
       <input type="text" data-list="addons" data-i="${i}" data-k="name" value="${esc(a.name)}" aria-label="ชื่องานเสริม ${i + 1}">
       <select data-list="addons" data-i="${i}" data-k="type" aria-label="วิธีคิดราคา ${esc(a.name)}">${Object.entries(ADDON_TYPES).map(([k, v]) => `<option value="${k}" ${a.type === k ? 'selected' : ''}>${v}</option>`).join('')}</select>
       <input type="number" min="0" data-list="addons" data-i="${i}" data-k="price" value="${esc(a.price)}" aria-label="ราคา ${esc(a.name)}">
       <button class="rm" type="button" data-rmrow="addons" data-i="${i}" aria-label="ลบ ${esc(a.name)}">×</button></div>`).join('');
   $('#setSvcs').innerHTML = c.services.map((s, i) => `<div class="set-row svc-r">
+      <button class="grip" type="button" data-grip="services" data-i="${i}" aria-label="ลากหรือกดลูกศรขึ้นลงเพื่อย้าย ${esc(s.name)}" title="ลากเพื่อย้าย">⋮⋮</button>
       <input type="text" data-list="services" data-i="${i}" data-k="name" value="${esc(s.name)}" aria-label="ชื่อค่าบริการ ${i + 1}">
       <input type="number" min="0" data-list="services" data-i="${i}" data-k="price" value="${esc(s.price)}" aria-label="ราคา ${esc(s.name)}">
       <button class="rm" type="button" data-rmrow="services" data-i="${i}" aria-label="ลบ ${esc(s.name)}">×</button></div>`).join('');
@@ -1379,6 +1392,46 @@ $('#tab-prices').addEventListener('click', e => {
     markCfgDirty(); renderSettings(); const ins = $$(`[data-list="${L}"][data-k="name"]`); ins[ins.length - 1]?.focus();
   } else if (rm) { cfgDraft[rm.dataset.rmrow].splice(+rm.dataset.i, 1); markCfgDirty(); renderSettings(); }
 });
+/* drag rows by the grip (mouse and touch), or move with arrow keys */
+let drag = null;
+function moveRow(L, from, to) {
+  const arr = cfgDraft[L]; if (!arr || from === to || to < 0 || to >= arr.length) return false;
+  const [it] = arr.splice(from, 1); arr.splice(to, 0, it); markCfgDirty(); return true;
+}
+$('#tab-prices').addEventListener('pointerdown', e => {
+  const g = e.target.closest('[data-grip]'); if (!g || (e.pointerType === 'mouse' && e.button !== 0)) return;
+  e.preventDefault();
+  const row = g.closest('.set-row');
+  drag = { L: g.dataset.grip, from: +g.dataset.i, row, list: row.parentElement, id: e.pointerId };
+  row.classList.add('dragging'); drag.list.classList.add('is-dragging');
+  try { g.setPointerCapture(e.pointerId); } catch {}
+});
+$('#tab-prices').addEventListener('pointermove', e => {
+  if (!drag || e.pointerId !== drag.id) return;
+  e.preventDefault();
+  const rows = Array.from(drag.list.querySelectorAll('.set-row:not(.head)')).filter(r => r !== drag.row);
+  const next = rows.find(r => { const b = r.getBoundingClientRect(); return e.clientY < b.top + b.height / 2; });
+  if (next) { if (drag.row.nextElementSibling !== next) drag.list.insertBefore(drag.row, next); }
+  else if (drag.list.lastElementChild !== drag.row) drag.list.appendChild(drag.row);
+  const edge = 70;
+  if (e.clientY < edge) window.scrollBy(0, -14); else if (e.clientY > window.innerHeight - edge) window.scrollBy(0, 14);
+});
+function endDrag(e) {
+  if (!drag || (e && e.pointerId !== drag.id)) return;
+  const rows = Array.from(drag.list.querySelectorAll('.set-row:not(.head)'));
+  const to = rows.indexOf(drag.row), { L, from } = drag;
+  drag.row.classList.remove('dragging'); drag.list.classList.remove('is-dragging'); drag = null;
+  if (moveRow(L, from, to)) toast('ย้ายแล้ว กด “บันทึกการตั้งค่า” เพื่อใช้ลำดับใหม่');
+  renderSettings();
+}
+$('#tab-prices').addEventListener('pointerup', endDrag);
+$('#tab-prices').addEventListener('pointercancel', endDrag);
+$('#tab-prices').addEventListener('keydown', e => {
+  const g = e.target.closest('[data-grip]'); if (!g || (e.key !== 'ArrowUp' && e.key !== 'ArrowDown')) return;
+  e.preventDefault();
+  const L = g.dataset.grip, from = +g.dataset.i, to = from + (e.key === 'ArrowUp' ? -1 : 1);
+  if (moveRow(L, from, to)) { renderSettings(); document.querySelector(`[data-grip="${L}"][data-i="${to}"]`)?.focus(); }
+});
 $('#resetCfg').addEventListener('click', () => { cfgDirty = false; cfgDraft = clone(config); renderSettings(); });
 async function persistConfig(c) {
   if (db) await db.doc('shop/config').set(c);
@@ -1400,8 +1453,8 @@ applyConfig(); renderQuoteForm(); renderPaper(); route();
 setMode('local', 'กำลังเชื่อมต่อ…');
 
 /* ---------- app: version, updates, backup ---------- */
-const APP_VERSION = '1.3.0';
-const CHANGELOG = [{"v": "1.3.0", "date": "2026-11-16", "items": ["ลูกค้าประจำ: ตั้งส่วนลด % ทุกงาน หรือราคาพิเศษรายวัสดุ (บาท/ตร.ม.) ได้ที่แท็บตั้งค่า", "หน้าคิดราคา: เลือกลูกค้าแล้วราคาเปลี่ยนให้เอง แสดงราคาปกติขีดฆ่าและยอดที่ลูกค้าประหยัด", "ราคาพิเศษเฉพาะงาน: ลด % / ราคาต่อ ตร.ม. เอง / ราคาเหมาต่อชิ้น", "ใบเสนอราคา: เลือกลูกค้าประจำเพื่อกรอกชื่อ เบอร์ ที่อยู่ เลขผู้เสียภาษีให้เอง และบันทึกลูกค้าใหม่เป็นลูกค้าประจำได้ในปุ่มเดียว", "แก้ปัญหา: กดสลับ ใบเสนอราคา / ใบเสร็จ / ใบสั่งงานช่าง แล้วขนาดป้ายในหน้าคิดราคาเพี้ยน (คูณ 100)"]}, {"v": "1.2.1", "date": "2026-11-16", "items": ["ล็อคที่อยู่บริษัท 101/5 หมู่ที่ 1 ตำบลคูคต อำเภอลำลูกกา จังหวัดปทุมธานี 12130 แสดงบนเอกสารทุกใบ"]}, {"v": "1.2.0", "date": "2026-11-16", "items": ["ล็อคชื่อ บริษัท โททอล แอด ไซน์ จำกัด และโลโก้ Total ad Sign ไว้ในโปรแกรม แสดงบนเอกสารทุกใบ", "ไอคอนแอปและหัวโปรแกรมเปลี่ยนเป็นโลโก้ Total ad Sign"]}, {"v": "1.1.0", "date": "2026-11-16", "items": ["ใบเสร็จรับเงิน: ออกได้ทุกครั้งที่รับเงิน (มัดจำ / ชำระเพิ่ม / ส่วนที่เหลือ) เลขที่ใบเสร็จรันอัตโนมัติ RE…", "ใบเสร็จรับเงิน/ใบกำกับภาษี สำหรับร้านที่จด VAT แยกมูลค่าก่อนภาษีและ VAT ให้", "ตั้งค่าข้อมูลบริษัท: ชื่อบริษัท สาขา เลขผู้เสียภาษี ชื่อผู้รับเงิน และใส่โลโก้ร้านได้ (แสดงบนเอกสารทุกใบ)", "ใส่เลขผู้เสียภาษีและสาขาของลูกค้าได้", "บันทึกวิธีชำระเงิน (โอน เงินสด เช็ค บัตร)", "แท็บ “ตั้งราคา” เปลี่ยนชื่อเป็น “ตั้งค่า”"]}, {"v": "1.0.0", "date": "2026-11-16", "items": ["คิดราคาป้ายตามขนาดและวัสดุ คิดให้ทั้ง ตร.ม. และ ตร.ฟุต นับจำนวนตาไก่ให้เอง", "ข้อความตอบลูกค้าทาง LINE กดคัดลอกได้ทันที", "ตารางราคาไซซ์ยอดนิยม", "ใบเสนอราคา บันทึกเป็นรูป หรือพิมพ์เป็น PDF ได้", "ใบสั่งงานช่าง (ไม่แสดงราคา)", "ติดตามมัดจำและยอดค้าง ระบบบอกขั้นตอนต่อไปให้", "สำรองและกู้คืนข้อมูลเป็นไฟล์", "ใช้งานได้แม้ไม่มีอินเทอร์เน็ต และอัปเดตเวอร์ชันใหม่ได้ด้วยปุ่มเดียว"]}];
+const APP_VERSION = '1.4.0';
+const CHANGELOG = [{"v": "1.4.0", "date": "2026-11-16", "items": ["ลากเลื่อนลำดับวัสดุ งานเสริม และค่าบริการได้ (จับที่ ⋮⋮ แล้วลาก) ไม่ต้องลบแล้วพิมพ์ใหม่", "เจาะตาไก่ และพับขอบ ไม่คิดเงินแล้ว (แสดงว่า รวมในราคาแล้ว) ยังติ๊กได้เพื่อให้ช่างเห็นในใบสั่งงาน"]}, {"v": "1.3.0", "date": "2026-11-16", "items": ["ลูกค้าประจำ: ตั้งส่วนลด % ทุกงาน หรือราคาพิเศษรายวัสดุ (บาท/ตร.ม.) ได้ที่แท็บตั้งค่า", "หน้าคิดราคา: เลือกลูกค้าแล้วราคาเปลี่ยนให้เอง แสดงราคาปกติขีดฆ่าและยอดที่ลูกค้าประหยัด", "ราคาพิเศษเฉพาะงาน: ลด % / ราคาต่อ ตร.ม. เอง / ราคาเหมาต่อชิ้น", "ใบเสนอราคา: เลือกลูกค้าประจำเพื่อกรอกชื่อ เบอร์ ที่อยู่ เลขผู้เสียภาษีให้เอง และบันทึกลูกค้าใหม่เป็นลูกค้าประจำได้ในปุ่มเดียว", "แก้ปัญหา: กดสลับ ใบเสนอราคา / ใบเสร็จ / ใบสั่งงานช่าง แล้วขนาดป้ายในหน้าคิดราคาเพี้ยน (คูณ 100)"]}, {"v": "1.2.1", "date": "2026-11-16", "items": ["ล็อคที่อยู่บริษัท 101/5 หมู่ที่ 1 ตำบลคูคต อำเภอลำลูกกา จังหวัดปทุมธานี 12130 แสดงบนเอกสารทุกใบ"]}, {"v": "1.2.0", "date": "2026-11-16", "items": ["ล็อคชื่อ บริษัท โททอล แอด ไซน์ จำกัด และโลโก้ Total ad Sign ไว้ในโปรแกรม แสดงบนเอกสารทุกใบ", "ไอคอนแอปและหัวโปรแกรมเปลี่ยนเป็นโลโก้ Total ad Sign"]}, {"v": "1.1.0", "date": "2026-11-16", "items": ["ใบเสร็จรับเงิน: ออกได้ทุกครั้งที่รับเงิน (มัดจำ / ชำระเพิ่ม / ส่วนที่เหลือ) เลขที่ใบเสร็จรันอัตโนมัติ RE…", "ใบเสร็จรับเงิน/ใบกำกับภาษี สำหรับร้านที่จด VAT แยกมูลค่าก่อนภาษีและ VAT ให้", "ตั้งค่าข้อมูลบริษัท: ชื่อบริษัท สาขา เลขผู้เสียภาษี ชื่อผู้รับเงิน และใส่โลโก้ร้านได้ (แสดงบนเอกสารทุกใบ)", "ใส่เลขผู้เสียภาษีและสาขาของลูกค้าได้", "บันทึกวิธีชำระเงิน (โอน เงินสด เช็ค บัตร)", "แท็บ “ตั้งราคา” เปลี่ยนชื่อเป็น “ตั้งค่า”"]}, {"v": "1.0.0", "date": "2026-11-16", "items": ["คิดราคาป้ายตามขนาดและวัสดุ คิดให้ทั้ง ตร.ม. และ ตร.ฟุต นับจำนวนตาไก่ให้เอง", "ข้อความตอบลูกค้าทาง LINE กดคัดลอกได้ทันที", "ตารางราคาไซซ์ยอดนิยม", "ใบเสนอราคา บันทึกเป็นรูป หรือพิมพ์เป็น PDF ได้", "ใบสั่งงานช่าง (ไม่แสดงราคา)", "ติดตามมัดจำและยอดค้าง ระบบบอกขั้นตอนต่อไปให้", "สำรองและกู้คืนข้อมูลเป็นไฟล์", "ใช้งานได้แม้ไม่มีอินเทอร์เน็ต และอัปเดตเวอร์ชันใหม่ได้ด้วยปุ่มเดียว"]}];
 function downloadBlob(blob, name) {
   const url = URL.createObjectURL(blob); const a = document.createElement('a');
   a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
