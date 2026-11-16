@@ -100,6 +100,15 @@ input[type="number"] { font-variant-numeric: tabular-nums; }
 .seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
 .chips { display: flex; gap: 6px; flex-wrap: wrap; }
 .chip { border: 1px solid var(--line); background: var(--surface-2); border-radius: 999px; padding: 4px 12px; cursor: pointer; font-size: .88rem; font-variant-numeric: tabular-nums; }
+.size-chip { display: inline-flex; align-items: stretch; border: 1px solid var(--line); background: var(--surface-2); border-radius: 999px; overflow: hidden; font-size: .88rem; font-variant-numeric: tabular-nums; }
+.size-chip button { border: 0; background: none; cursor: pointer; padding: 5px 4px 5px 12px; }
+.size-chip .x { padding: 5px 10px 5px 6px; color: var(--muted); font-size: 1rem; line-height: 1; }
+.size-chip .x:hover { color: var(--danger); }
+.size-chip .x.armed { color: #fff; background: var(--danger); padding: 5px 10px; font-size: .8rem; }
+.size-chip.on { border-color: var(--accent); background: var(--accent-soft); font-weight: 700; }
+.size-chip:hover { border-color: var(--accent); }
+.save-size { border: 1px dashed var(--accent); color: var(--accent); background: none; border-radius: 999px; padding: 4px 12px; cursor: pointer; font-size: .88rem; font-weight: 600; }
+.save-size:disabled { border-style: solid; border-color: var(--line); color: var(--muted); cursor: default; font-weight: 500; }
 .chip:hover { border-color: var(--accent); }
 .addons { display: flex; flex-direction: column; gap: 6px; }
 .addon { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--line); cursor: pointer; }
@@ -335,7 +344,7 @@ input[type="number"] { font-variant-numeric: tabular-nums; }
             <div class="field"><label for="cH">สูง / ยาว</label><input type="number" id="cH" inputmode="decimal" min="0" step="any"></div>
             <div class="seg" role="group" aria-label="หน่วย"><button type="button" id="uCm" data-unit="cm">ซม.</button><button type="button" id="uM" data-unit="m">เมตร</button></div>
           </div>
-          <div class="chips" id="sizeChips"></div>
+          <div class="chips" id="sizeChips" aria-label="ขนาดที่บันทึกไว้"></div>
           <div class="row">
             <div class="field" style="flex:0 1 180px"><label for="cQty">จำนวน (ชิ้น)</label>
               <div class="stepper"><button type="button" id="qMinus" aria-label="ลดจำนวน">−</button><input type="number" id="cQty" min="1" step="1" inputmode="numeric"><button type="button" id="qPlus" aria-label="เพิ่มจำนวน">+</button></div>
@@ -372,11 +381,11 @@ input[type="number"] { font-variant-numeric: tabular-nums; }
 
       <div class="card" style="margin-top:20px">
         <div class="row" style="justify-content:space-between;align-items:baseline">
-          <h2>ราคาไซซ์ยอดนิยม · <span id="stMat"></span></h2>
+          <h2>ราคาขนาดที่บันทึกไว้ · <span id="stMat"></span></h2>
           <span class="muted" id="stNote"></span>
         </div>
         <div class="tscroll"><table class="sizetable" id="sizeTable"></table></div>
-        <p class="muted" style="margin:0">แตะแถวเพื่อใช้ขนาดนั้นในเครื่องคิดราคา</p>
+        <p class="muted" style="margin:0">แตะแถวเพื่อใช้ขนาดนั้นในเครื่องคิดราคา · เพิ่มหรือลบขนาดได้ที่ปุ่มใต้ช่องกว้าง/สูง</p>
       </div>
     </section>
 
@@ -631,6 +640,7 @@ function normalizeCfg(c) {
   c.shop = Object.assign({}, d.shop, c.shop || {}, LOCKED_SHOP);
   for (const k of ['materials', 'addons', 'services']) if (!Array.isArray(c[k])) c[k] = clone(d[k]);
   if (!Array.isArray(c.customers)) c.customers = [];
+  if (!Array.isArray(c.sizes)) c.sizes = SIZES.map(([w, h]) => ({ w, h }));
   if (!c.freeEyeletHem) {  // v1.4.0: the shop no longer charges for eyelets or hem folding (one-time change)
     c.addons.forEach(a => { if (a.id === 'eyelet' || a.id === 'hem') a.price = 0; });
     c.freeEyeletHem = true;
@@ -737,10 +747,15 @@ function renderMatList() {
 function renderCalcInputs() {
   $('#cW').value = calcS.w; $('#cH').value = calcS.h; $('#cQty').value = calcS.qty; $('#cSp').value = calcS.sp;
   $('#uCm').setAttribute('aria-pressed', calcS.unit === 'cm'); $('#uM').setAttribute('aria-pressed', calcS.unit === 'm');
-  $('#sizeChips').innerHTML = SIZES.map(([w, h]) => {
-    const f = calcS.unit === 'm' ? 0.01 : 1;
-    return `<button type="button" class="chip" data-w="${w}" data-h="${h}">${fmt0(w * f)} × ${fmt0(h * f)}</button>`;
-  }).join('');
+  renderSizeChips();
+}
+const curSizeCm = () => { const k = calcS.unit === 'm' ? 100 : 1; return { w: +(num(calcS.w) * k).toFixed(2), h: +(num(calcS.h) * k).toFixed(2) }; };
+const sameSize = (a, b) => Math.abs(num(a.w) - num(b.w)) < 0.01 && Math.abs(num(a.h) - num(b.h)) < 0.01;
+function renderSizeChips() {
+  const f = calcS.unit === 'm' ? 0.01 : 1, cur = curSizeCm();
+  const saved = config.sizes.some(z => sameSize(z, cur)), valid = cur.w > 0 && cur.h > 0;
+  $('#sizeChips').innerHTML = config.sizes.map((z, i) => `<span class="size-chip ${sameSize(z, cur) ? 'on' : ''}"><button type="button" data-w="${z.w}" data-h="${z.h}">${fmt0(z.w * f)} × ${fmt0(z.h * f)}</button><button type="button" class="x" data-rmsize="${i}" aria-label="ลบขนาด ${fmt0(z.w)} × ${fmt0(z.h)} ซม.">×</button></span>`).join('')
+    + `<button type="button" class="save-size" id="saveSize" ${saved || !valid ? 'disabled' : ''}>${saved ? '✓ บันทึกขนาดนี้ไว้แล้ว' : '+ บันทึกขนาดนี้'}</button>`;
 }
 function signSvg(r) {
   const W = 320, H = 200, pad = 26;
@@ -775,7 +790,7 @@ function renderResult() {
     : 'ใส่ขนาดป้ายก่อน';
   $('#lineMsg').textContent = r.area > 0 ? lineMsg(r) : 'ใส่ขนาดป้ายแล้วข้อความจะขึ้นตรงนี้';
   $('#copyPrice').disabled = !(r.area > 0);
-  renderSizeTable();
+  renderSizeTable(); renderSizeChips();
   const sp = $('#rSpecial'), cheaper = r.area > 0 && r.normal > r.per;
   sp.hidden = !(r.area > 0 && (r.special || r.per !== r.normal));
   sp.innerHTML = sp.hidden ? '' : `<span class="tag">${esc(r.special || 'ราคาพิเศษ')}</span>${r.normal !== r.per ? `<s>ราคาปกติ ฿${fmt0(r.normal * r.qty)}</s>` : ''}${cheaper ? `<span class="save">ลูกค้าประหยัด ฿${fmt0((r.normal - r.per) * r.qty)}</span>` : ''}`;
@@ -803,7 +818,8 @@ function renderSizeTable() {
   $('#stNote').textContent = names.length ? `รวม ${names.join(', ')}` : 'ไม่รวมงานเสริม';
   const cur = compute();
   $('#sizeTable').innerHTML = `<thead><tr><th>ขนาด (ซม.)</th><th>ตร.ม.</th><th>ราคา/ชิ้น</th><th>5 ชิ้น</th><th>10 ชิ้น</th></tr></thead><tbody>` +
-    SIZES.map(([w, h]) => {
+    (config.sizes.length ? '' : '<tr><td colspan="5" class="muted" style="text-align:left">ยังไม่มีขนาดที่บันทึกไว้ ใส่ขนาดแล้วกด “+ บันทึกขนาดนี้”</td></tr>') +
+    config.sizes.map(({ w, h }) => {
       const r = compute({ ...calcS, w, h, unit: 'cm', qty: 1, ov: calcS.ov === 'piece' ? 'none' : calcS.ov });
       const on = Math.abs(cur.wcm - w) < 0.01 && Math.abs(cur.hcm - h) < 0.01;
       return `<tr class="${on ? 'on' : ''}" data-w="${w}" data-h="${h}" tabindex="0"><td>${fmt0(w)} × ${fmt0(h)}</td><td>${r.area.toFixed(2)}</td><td><b>${fmt0(r.per)}</b></td><td>${fmt0(r.per * 5)}</td><td>${fmt0(r.per * 10)}</td></tr>`;
@@ -1151,7 +1167,24 @@ $$('.seg button[data-unit]').forEach(b => b.addEventListener('click', () => {
   const f = u === 'm' ? 0.01 : 100;
   calcS.w = +(num(calcS.w) * f).toFixed(3); calcS.h = +(num(calcS.h) * f).toFixed(3); calcS.unit = u; saveCalc(); renderCalcInputs(); renderResult();
 }));
-$('#sizeChips').addEventListener('click', e => {
+async function saveSizes(list, msg) {
+  const c = clone(config); c.sizes = list;
+  try { await persistConfig(c); if (cfgDirty) cfgDraft.sizes = clone(list); toast(msg); }
+  catch { toast('บันทึกไม่สำเร็จ ลองอีกครั้ง'); }
+}
+$('#sizeChips').addEventListener('click', async e => {
+  if (e.target.closest('#saveSize')) {
+    const cur = curSizeCm(); if (!(cur.w > 0 && cur.h > 0) || config.sizes.some(z => sameSize(z, cur))) return;
+    await saveSizes([cur, ...config.sizes], `บันทึกขนาด ${fmt0(cur.w)} × ${fmt0(cur.h)} ซม. แล้ว`);
+    return;
+  }
+  const x = e.target.closest('[data-rmsize]');
+  if (x) {
+    if (!x.classList.contains('armed')) { x.classList.add('armed'); x.textContent = 'ลบ?'; setTimeout(() => { if (x.isConnected) { x.classList.remove('armed'); x.textContent = '×'; } }, 3000); return; }
+    const i = +x.dataset.rmsize, z = config.sizes[i]; if (!z) return;
+    await saveSizes(config.sizes.filter((_, j) => j !== i), `ลบขนาด ${fmt0(z.w)} × ${fmt0(z.h)} ซม. แล้ว`);
+    return;
+  }
   const b = e.target.closest('[data-w]'); if (!b) return; const f = calcS.unit === 'm' ? 0.01 : 1;
   calcS.w = +(b.dataset.w * f).toFixed(3); calcS.h = +(b.dataset.h * f).toFixed(3); saveCalc(); renderCalcInputs(); renderResult();
 });
