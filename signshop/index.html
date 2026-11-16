@@ -1,0 +1,1216 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>คิดราคาป้าย</title>
+<meta name="description" content="คิดราคาป้าย ออกใบเสนอราคา ใบสั่งงานช่าง ติดตามมัดจำ สำหรับร้านป้าย">
+<meta name="theme-color" content="#0a74b8">
+<meta name="app-version" content="1.0.0">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="คิดราคาป้าย">
+<link rel="stylesheet" href="fonts/fonts.css">
+<script src="vendor/html2canvas.min.js"></script>
+<style>
+/* Layout: tabbed workbench. Form column on the left, live price / quotation paper on the right; stacks to one column under 900px. Process-colour (CMYK) details nod to the print shop. */
+:root {
+  --bg: #eceff3;
+  --surface: #ffffff;
+  --surface-2: #f4f6f9;
+  --ink: #141a22;
+  --muted: #5a6574;
+  --line: #d5dbe3;
+  --accent: #0a74b8;
+  --accent-ink: #ffffff;
+  --accent-soft: #e2f0fa;
+  --c: #00a3e0; --m: #e4007c; --y: #ffd200; --k: #1b1b1b;
+  --danger: #c0392b;
+  --ok: #1f7a4a;
+  --warn: #b26a00;
+  --chat: #dcf3e1;
+  --chat-ink: #11331c;
+  --paper: #ffffff;
+  --paper-ink: #1c1c1c;
+  --paper-line: #cfd4da;
+  --paper-tint: #f1f5f9;
+  --f-display: "Kanit", "Sarabun", system-ui, sans-serif;
+  --f-body: "Sarabun", "Noto Sans Thai", "Leelawadee UI", system-ui, sans-serif;
+  --r: 10px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e1217; --surface: #161b22; --surface-2: #1d232c; --ink: #e7ecf2; --muted: #98a3b2;
+    --line: #2a323d; --accent: #45b4ee; --accent-ink: #04121c; --accent-soft: #12293a;
+    --danger: #ff7b6b; --ok: #5fd39a; --warn: #f0b04a; --chat: #1d3a27; --chat-ink: #dff5e5; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e1217; --surface: #161b22; --surface-2: #1d232c; --ink: #e7ecf2; --muted: #98a3b2;
+  --line: #2a323d; --accent: #45b4ee; --accent-ink: #04121c; --accent-soft: #12293a;
+  --danger: #ff7b6b; --ok: #5fd39a; --warn: #f0b04a; --chat: #1d3a27; --chat-ink: #dff5e5; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+:root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+body { margin: 0; }
+img { max-width: 100%; }
+[hidden] { display: none !important; }
+body { background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 16px; line-height: 1.5; }
+button, input, select, textarea { font: inherit; color: inherit; }
+a { color: var(--accent); }
+.wrap { max-width: 1240px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+
+/* header */
+.top { background: var(--surface); border-bottom: 1px solid var(--line); }
+.top .wrap { padding-block: 14px 0; display: flex; flex-direction: column; gap: 10px; }
+.brand { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.brand h1 { margin: 0; font-family: var(--f-display); font-weight: 600; font-size: 1.45rem; letter-spacing: .2px; line-height: 1.2; }
+.brand h1 small { display: block; font-family: var(--f-body); font-weight: 500; font-size: .85rem; color: var(--muted); }
+.cmyk { display: flex; height: 6px; width: 72px; border-radius: 2px; overflow: hidden; }
+.cmyk i { flex: 1; } .cmyk i:nth-child(1){background:var(--c)} .cmyk i:nth-child(2){background:var(--m)} .cmyk i:nth-child(3){background:var(--y)} .cmyk i:nth-child(4){background:var(--k)}
+.status { font-size: .82rem; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+.status .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+.status.cloud .dot { background: var(--ok); }
+.tabs { display: flex; gap: 2px; overflow-x: auto; scrollbar-width: none; }
+.tabs a { padding: 10px 14px; text-decoration: none; color: var(--muted); font-weight: 600; border-bottom: 3px solid transparent; white-space: nowrap; font-family: var(--f-display); font-weight: 500; }
+.tabs a[aria-current="page"] { color: var(--ink); border-bottom-color: var(--accent); }
+.tabs a .count { display: inline-block; min-width: 20px; padding: 0 6px; margin-left: 4px; border-radius: 10px; background: var(--accent); color: var(--accent-ink); font-size: .75rem; text-align: center; font-family: var(--f-body); }
+.tabs a:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+
+main .wrap { padding-block: 20px 60px; }
+.notice { background: var(--accent-soft); border-radius: var(--r); padding: 10px 14px; font-size: .9rem; margin-bottom: 16px; }
+.grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+.grid.quote { grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); }
+@media (max-width: 900px) { .grid, .grid.quote { grid-template-columns: minmax(0, 1fr); } }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 18px; display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.sticky { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 12px); }
+@media (max-width: 900px) { .sticky { position: static; } }
+h2 { margin: 0; font-family: var(--f-display); font-weight: 500; font-size: 1.15rem; text-wrap: balance; }
+h3 { margin: 0; font-size: .82rem; font-weight: 600; color: var(--muted); letter-spacing: .4px; }
+.field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.row { display: flex; gap: 10px; flex-wrap: wrap; align-items: end; }
+.row > .field { flex: 1 1 120px; }
+input[type="text"], input[type="number"], input[type="tel"], select, textarea {
+  width: 100%; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-2); min-width: 0;
+}
+textarea { resize: vertical; min-height: 70px; }
+input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+input[type="number"] { font-variant-numeric: tabular-nums; }
+
+/* materials picker */
+.mats { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px; }
+.mat { position: relative; display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; cursor: pointer; background: var(--surface-2); }
+.mat input { position: absolute; opacity: 0; pointer-events: none; }
+.mat b { font-weight: 600; font-size: .95rem; line-height: 1.3; }
+.mat span { font-size: .82rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.mat:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); box-shadow: inset 0 0 0 1px var(--accent); }
+.mat:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; flex: 0 0 auto; }
+.seg button { border: 0; background: var(--surface-2); padding: 10px 14px; cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+.chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.chip { border: 1px solid var(--line); background: var(--surface-2); border-radius: 999px; padding: 4px 12px; cursor: pointer; font-size: .88rem; font-variant-numeric: tabular-nums; }
+.chip:hover { border-color: var(--accent); }
+.addons { display: flex; flex-direction: column; gap: 6px; }
+.addon { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--line); cursor: pointer; }
+.addon:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
+.addon input { width: 18px; height: 18px; accent-color: var(--accent); }
+.addon .nm { flex: 1; }
+.addon .pr { font-size: .85rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.stepper { display: flex; align-items: stretch; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.stepper button { border: 0; background: var(--surface-2); width: 44px; font-size: 1.2rem; cursor: pointer; }
+.stepper input { border: 0; border-radius: 0; text-align: center; background: var(--surface); }
+
+/* result */
+.price-big { font-family: var(--f-display); font-weight: 600; font-size: clamp(2rem, 5vw, 2.8rem); line-height: 1.1; font-variant-numeric: tabular-nums; }
+.price-big small { font-size: 1rem; font-weight: 500; color: var(--muted); margin-left: 6px; }
+.price-sub { color: var(--muted); font-size: .92rem; }
+.breakdown { display: flex; flex-direction: column; border-top: 1px dashed var(--line); }
+.breakdown div { display: flex; justify-content: space-between; gap: 12px; padding: 7px 0; border-bottom: 1px dashed var(--line); font-size: .93rem; }
+.breakdown div span:last-child { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.breakdown .note { color: var(--muted); font-size: .8rem; }
+.breakdown .sum { font-weight: 700; border-bottom: 0; }
+.preview-sign { background: var(--surface-2); border-radius: 8px; padding: 12px; display: flex; justify-content: center; }
+.preview-sign svg { width: 100%; max-width: 100%; height: auto; max-height: 220px; display: block; }
+
+.btn { border: 1px solid var(--line); background: var(--surface-2); border-radius: 8px; padding: 10px 16px; cursor: pointer; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+.btn:hover { border-color: var(--accent); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.btn.primary:hover { filter: brightness(1.07); }
+.btn.danger { color: var(--danger); }
+.btn.small { padding: 6px 10px; font-size: .88rem; font-weight: 500; }
+.btn:disabled { opacity: .5; cursor: default; }
+.actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.muted { color: var(--muted); font-size: .88rem; }
+
+/* items editor */
+.items { display: flex; flex-direction: column; gap: 8px; }
+.item { display: grid; grid-template-columns: minmax(0, 1fr) 70px 100px 36px; gap: 6px; padding: 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-2); align-items: start; }
+.item .desc { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.item input { padding: 7px 9px; background: var(--surface); }
+.item .detail { font-size: .85rem; }
+.item .amt { grid-column: 1 / -1; text-align: right; font-size: .88rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.item .rm { border: 0; background: none; cursor: pointer; color: var(--danger); font-size: 1.3rem; line-height: 1; padding: 6px 0; }
+.item label { font-size: .72rem; color: var(--muted); display: block; }
+@media (max-width: 480px) { .item { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 36px; } .item .desc { grid-column: 1 / -1; } }
+.empty { padding: 18px; text-align: center; color: var(--muted); border: 1px dashed var(--line); border-radius: 8px; }
+.toggle { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+.toggle input { width: 18px; height: 18px; accent-color: var(--accent); }
+
+/* paper */
+.paper-scroll { overflow-x: auto; border-radius: 6px; }
+.paper { background: var(--paper); color: var(--paper-ink); font-family: "Sarabun", system-ui, sans-serif; padding: 28px; border-radius: 4px; box-shadow: 0 1px 2px rgba(0,0,0,.08), 0 8px 24px rgba(0,0,0,.08); font-size: 13px; line-height: 1.5; min-width: 0; position: relative; }
+.paper.export { width: 794px; box-shadow: none; border-radius: 0; padding: 40px 44px; }
+.paper .ph { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; flex-wrap: wrap; }
+.paper .shop b { font-family: "Kanit", "Sarabun", sans-serif; font-weight: 600; font-size: 19px; display: block; line-height: 1.25; }
+.paper .shop div { font-size: 12px; color: #4a4f57; white-space: pre-line; }
+.paper .doc-title { text-align: right; }
+.paper .doc-title b { font-family: "Kanit", "Sarabun", sans-serif; font-weight: 600; font-size: 20px; display: block; line-height: 1.2; }
+.paper .doc-title span { font-size: 11px; letter-spacing: 2px; color: #4a4f57; }
+.paper .strip { display: flex; height: 4px; margin: 14px 0; }
+.paper .strip i { flex: 1; } .paper .strip i:nth-child(1){background:#00a3e0} .paper .strip i:nth-child(2){background:#e4007c} .paper .strip i:nth-child(3){background:#ffd200} .paper .strip i:nth-child(4){background:#1b1b1b}
+.paper .meta { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 12px; margin-bottom: 14px; }
+.paper .box { border: 1px solid var(--paper-line); border-radius: 4px; padding: 8px 10px; }
+.paper .box .k { font-size: 11px; color: #5d636b; }
+.paper .kv { display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; font-size: 12.5px; }
+.paper .kv span:nth-child(odd) { color: #5d636b; }
+.paper table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.paper th { background: var(--paper-tint); text-align: left; font-weight: 600; padding: 6px 8px; border-top: 1px solid var(--paper-line); border-bottom: 1px solid var(--paper-line); }
+.paper td { padding: 6px 8px; border-bottom: 1px solid #e6e9ed; vertical-align: top; }
+.paper .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.paper .c { text-align: center; }
+.paper td small { display: block; color: #5d636b; font-size: 11.5px; }
+.paper .tot { display: grid; grid-template-columns: minmax(0, 1fr) 250px; gap: 16px; margin-top: 10px; }
+.paper .tot .lines div { display: flex; justify-content: space-between; padding: 3px 8px; font-variant-numeric: tabular-nums; }
+.paper .tot .grand { background: var(--paper-tint); font-weight: 700; font-size: 14px; border-top: 1px solid var(--paper-line); border-bottom: 1px solid var(--paper-line); padding: 6px 8px !important; }
+.paper .baht { border: 1px solid var(--paper-line); border-radius: 4px; padding: 8px 10px; font-weight: 600; align-self: start; }
+.paper .baht .k { font-weight: 400; font-size: 11px; color: #5d636b; display: block; }
+.paper .notes { margin-top: 14px; font-size: 12px; white-space: pre-line; color: #333; }
+.paper .notes b { display: block; color: var(--paper-ink); }
+.paper .sign { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-top: 34px; text-align: center; font-size: 12px; }
+.paper .sign div { border-top: 1px dotted #888; padding-top: 6px; color: #444; }
+.paper .ex { position: absolute; top: 10px; right: 12px; font-size: 10px; color: #b23; letter-spacing: .5px; }
+@media (max-width: 560px) { .paper { padding: 18px 14px; } .paper .meta, .paper .tot { grid-template-columns: minmax(0, 1fr); } .paper .doc-title { text-align: left; } }
+
+/* history */
+.hist { display: flex; flex-direction: column; gap: 8px; }
+/* LINE reply bubble */
+.msg { display: flex; flex-direction: column; gap: 8px; }
+.msg-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-weight: 600; font-size: .9rem; }
+.bubble { background: var(--chat); color: var(--chat-ink); border-radius: 16px 16px 16px 4px; padding: 12px 14px; white-space: pre-line; font-size: .97rem; line-height: 1.55; user-select: all; }
+.breakdown-wrap summary { cursor: pointer; color: var(--muted); font-size: .9rem; padding: 4px 0; }
+.breakdown-wrap[open] summary { margin-bottom: 6px; }
+/* size table */
+.tscroll { overflow-x: auto; }
+.sizetable { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; min-width: 420px; }
+.sizetable th { text-align: right; font-size: .8rem; color: var(--muted); font-weight: 600; padding: 8px 10px; border-bottom: 1px solid var(--line); }
+.sizetable th:first-child, .sizetable td:first-child { text-align: left; }
+.sizetable td { text-align: right; padding: 9px 10px; border-bottom: 1px solid var(--line); }
+.sizetable tbody tr { cursor: pointer; }
+.sizetable tbody tr:hover { background: var(--surface-2); }
+.sizetable tr.on { background: var(--accent-soft); font-weight: 700; }
+.sizetable td b { font-size: 1.02rem; }
+/* payments */
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; }
+.tile { background: var(--surface-2); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; min-width: 0; }
+.tile span { display: block; font-size: .78rem; color: var(--muted); }
+.tile b { font-size: 1.12rem; font-variant-numeric: tabular-nums; }
+.tile.hot b { color: var(--danger); }
+.tile.good b { color: var(--ok); }
+.next { border-radius: 8px; padding: 10px 12px; font-weight: 600; display: flex; gap: 8px; align-items: center; background: var(--surface-2); border: 1px solid var(--line); }
+.next::before { content: ""; width: 10px; height: 10px; border-radius: 50%; background: currentColor; flex: 0 0 auto; }
+.next.s-wait { color: var(--warn); } .next.s-partial { color: var(--warn); } .next.s-prod { color: var(--accent); } .next.s-paid { color: var(--ok); } .next.s-none { color: var(--muted); }
+.pays { display: flex; flex-direction: column; gap: 4px; }
+.pay { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 6px 10px; border-radius: 6px; background: var(--surface-2); font-size: .92rem; font-variant-numeric: tabular-nums; }
+.pay .rm { border: 0; background: none; color: var(--danger); cursor: pointer; font-size: 1.1rem; }
+.pill { display: inline-block; font-size: .75rem; font-weight: 600; padding: 2px 8px; border-radius: 999px; border: 1px solid currentColor; white-space: nowrap; }
+.pill.s-wait, .pill.s-partial { color: var(--warn); } .pill.s-prod { color: var(--accent); } .pill.s-paid { color: var(--ok); } .pill.s-none { color: var(--muted); }
+.chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.hrow { display: grid; grid-template-columns: 120px minmax(0, 1fr) 130px auto; gap: 12px; align-items: center; padding: 12px 14px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); }
+.hrow .no { font-weight: 700; font-variant-numeric: tabular-nums; }
+.hrow .who { min-width: 0; }
+.hrow .who b { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hrow .amt { text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; }
+@media (max-width: 640px) { .hrow { grid-template-columns: minmax(0, 1fr) auto; } .hrow .who { grid-column: 1 / -1; grid-row: 2; } .hrow .acts { grid-column: 1 / -1; } }
+.search { max-width: 360px; }
+
+/* settings */
+.set-table { display: flex; flex-direction: column; gap: 6px; }
+.set-row { display: grid; gap: 6px; align-items: center; }
+.set-row.mat-r { grid-template-columns: minmax(0, 1fr) 110px 110px 36px; }
+.set-row.add-r { grid-template-columns: minmax(0, 1fr) 150px 100px 36px; }
+.set-row.svc-r { grid-template-columns: minmax(0, 1fr) 110px 36px; }
+.set-row.head { font-size: .78rem; color: var(--muted); font-weight: 600; }
+.set-row input, .set-row select { padding: 8px 10px; }
+.set-row .rm { border: 0; background: none; cursor: pointer; color: var(--danger); font-size: 1.3rem; }
+@media (max-width: 560px) {
+  .set-row.mat-r { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 36px; }
+  .set-row.mat-r > :first-child { grid-column: 1 / -1; }
+  .set-row.add-r { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 36px; }
+  .set-row.add-r > :first-child { grid-column: 1 / -1; }
+  .set-row.head { display: none; }
+}
+.savebar { position: sticky; bottom: 0; padding-block: 12px calc(12px + env(safe-area-inset-bottom, 0px)); background: var(--bg); display: flex; gap: 10px; align-items: center; flex-wrap: wrap; border-top: 1px solid var(--line); }
+
+/* app bar: update / install */
+.updbar { background: var(--accent); color: var(--accent-ink); }
+.updbar .wrap { padding-block: 10px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; justify-content: space-between; }
+.updbar .btn { background: var(--accent-ink); color: var(--accent); border-color: var(--accent-ink); }
+.ver { font-size: .75rem; color: var(--muted); }
+.whatsnew ul { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 4px; }
+.whatsnew h3 { margin-top: 6px; }
+.backup-state { padding: 10px 12px; border-radius: 8px; background: var(--surface-2); border: 1px solid var(--line); font-size: .92rem; }
+.backup-state.old { border-color: var(--warn); color: var(--warn); }
+@media print {
+  @page { size: A4; margin: 12mm; }
+  body { background: #fff !important; }
+  body * { visibility: hidden !important; }
+  #paper, #paper * { visibility: visible !important; }
+  #paper { position: absolute; left: 0; top: 0; width: 100%; box-shadow: none !important; padding: 0 !important; border-radius: 0; }
+  .paper-scroll { overflow: visible !important; }
+}
+/* overlay & toast */
+.overlay { position: fixed; inset: 0; background: rgba(0,0,0,.6); display: flex; align-items: center; justify-content: center; padding: max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(16px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); z-index: 50; }
+.overlay .sheet { background: var(--surface); border-radius: var(--r); padding: 16px; max-width: 760px; width: 100%; max-height: 100%; overflow: auto; display: flex; flex-direction: column; gap: 12px; }
+.overlay img { width: 100%; border: 1px solid var(--line); }
+.toast { position: fixed; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--ink); color: var(--bg); padding: 10px 18px; border-radius: 999px; font-size: .92rem; z-index: 60; max-width: calc(100% - 32px); text-align: center; }
+@media (prefers-reduced-motion: no-preference) { .toast { animation: up .2s ease-out; } @keyframes up { from { transform: translate(-50%, 10px); opacity: 0; } } }
+</style>
+
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <div class="brand">
+      <h1><span id="hdrShop">ร้านป้ายตัวอย่าง</span><small>คิดราคาป้าย · ออกใบเสนอราคา</small></h1>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
+        <div class="cmyk" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+        <div class="status" id="status"><span class="dot"></span><span id="statusText">เก็บข้อมูลในเครื่องนี้</span> <span class="ver" id="appVer"></span></div>
+        <button class="btn small primary" id="installBtn" type="button" hidden>ติดตั้งแอป</button>
+      </div>
+    </div>
+    <nav class="tabs" aria-label="เมนู">
+      <a href="#calc" data-tab="calc">คิดราคา</a>
+      <a href="#quote" data-tab="quote">ใบเสนอราคา<span class="count" id="itemCount">0</span></a>
+      <a href="#history" data-tab="history">ใบที่บันทึกไว้</a>
+      <a href="#prices" data-tab="prices">ตั้งราคา</a>
+    </nav>
+  </div>
+</header>
+<div class="updbar" id="updBar" hidden role="status"><div class="wrap"><span><b>มีเวอร์ชันใหม่แล้ว</b> · ข้อมูลร้านและใบเสนอราคาเดิมไม่หาย</span><button class="btn small" id="updBtn" type="button">อัปเดตเลย</button></div></div>
+
+<main>
+  <div class="wrap">
+    <div class="notice" id="exampleNotice">ราคาทั้งหมดตอนนี้เป็น<b>ราคาสมมติ</b> แก้เป็นราคาจริงของร้านได้ที่แท็บ <a href="#prices">ตั้งราคา</a></div>
+
+    <!-- ===== CALCULATOR ===== -->
+    <section id="tab-calc" data-view="calc">
+      <div class="grid">
+        <div class="card">
+          <h2>1. เลือกวัสดุ</h2>
+          <div class="mats" id="matList" role="radiogroup" aria-label="วัสดุ"></div>
+
+          <h2>2. ขนาดป้าย</h2>
+          <div class="row">
+            <div class="field"><label for="cW">กว้าง</label><input type="number" id="cW" inputmode="decimal" min="0" step="any"></div>
+            <div class="field"><label for="cH">สูง / ยาว</label><input type="number" id="cH" inputmode="decimal" min="0" step="any"></div>
+            <div class="seg" role="group" aria-label="หน่วย"><button type="button" id="uCm" data-unit="cm">ซม.</button><button type="button" id="uM" data-unit="m">เมตร</button></div>
+          </div>
+          <div class="chips" id="sizeChips"></div>
+          <div class="row">
+            <div class="field" style="flex:0 1 180px"><label for="cQty">จำนวน (ชิ้น)</label>
+              <div class="stepper"><button type="button" id="qMinus" aria-label="ลดจำนวน">−</button><input type="number" id="cQty" min="1" step="1" inputmode="numeric"><button type="button" id="qPlus" aria-label="เพิ่มจำนวน">+</button></div>
+            </div>
+          </div>
+
+          <h2>3. งานเสริม</h2>
+          <div class="addons" id="addonList"></div>
+          <div class="field" id="spacingField" hidden style="max-width:220px"><label for="cSp">ระยะห่างตาไก่ (ซม.)</label><input type="number" id="cSp" min="10" step="5" inputmode="numeric"></div>
+        </div>
+
+        <div class="card sticky" aria-live="polite">
+          <div class="preview-sign" id="signSvg"></div>
+          <div>
+            <div class="price-big" id="rTotal">฿0</div>
+            <div class="price-sub" id="rSub"></div>
+          </div>
+          <div class="msg">
+            <div class="msg-head"><span>ข้อความตอบลูกค้า</span><button class="btn small primary" id="copyPrice" type="button">คัดลอก</button></div>
+            <div class="bubble" id="lineMsg"></div>
+          </div>
+          <details class="breakdown-wrap"><summary>ดูวิธีคิดราคา</summary><div class="breakdown" id="rLines"></div></details>
+          <div class="actions">
+            <button class="btn" id="addToQuote" type="button">+ เพิ่มลงใบเสนอราคา</button>
+          </div>
+          <div class="muted" id="rHint"></div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:20px">
+        <div class="row" style="justify-content:space-between;align-items:baseline">
+          <h2>ราคาไซซ์ยอดนิยม · <span id="stMat"></span></h2>
+          <span class="muted" id="stNote"></span>
+        </div>
+        <div class="tscroll"><table class="sizetable" id="sizeTable"></table></div>
+        <p class="muted" style="margin:0">แตะแถวเพื่อใช้ขนาดนั้นในเครื่องคิดราคา</p>
+      </div>
+    </section>
+
+    <!-- ===== QUOTE ===== -->
+    <section id="tab-quote" data-view="quote" hidden>
+      <div class="grid quote">
+        <div class="card">
+          <div class="row" style="justify-content:space-between;align-items:center">
+            <h2 id="qHeading">ใบเสนอราคาใหม่</h2>
+            <button class="btn small" id="newQuote" type="button">เริ่มใบใหม่</button>
+          </div>
+          <h3>ลูกค้า</h3>
+          <div class="field"><label for="qName">ชื่อลูกค้า / ร้าน</label><input type="text" id="qName" autocomplete="off"></div>
+          <div class="row">
+            <div class="field"><label for="qPhone">เบอร์โทร</label><input type="tel" id="qPhone" autocomplete="off"></div>
+            <div class="field"><label for="qDate">วันที่</label><input type="date" id="qDate" style="width:100%;padding:9px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2)"></div>
+          </div>
+          <div class="field"><label for="qAddr">ที่อยู่ / หมายเหตุลูกค้า</label><input type="text" id="qAddr" autocomplete="off"></div>
+
+          <h3>รายการ</h3>
+          <div class="items" id="itemsEd"></div>
+          <div class="chips" id="svcChips"></div>
+          <div class="actions"><button class="btn small" id="addBlank" type="button">+ เพิ่มรายการเอง</button><a class="btn small" href="#calc">+ คิดราคาป้ายเพิ่ม</a></div>
+
+          <h3>ส่วนลด และภาษี</h3>
+          <div class="row">
+            <div class="field"><label for="qDisc">ส่วนลด (บาท)</label><input type="number" id="qDisc" min="0" step="1" inputmode="decimal"></div>
+            <div class="field"><label for="qDep">มัดจำ (%)</label><input type="number" id="qDep" min="0" max="100" step="5" inputmode="numeric"></div>
+          </div>
+          <label class="toggle"><input type="checkbox" id="qVat"> คิด VAT 7% เพิ่ม</label>
+          <div class="field"><label for="qNote">เงื่อนไข / หมายเหตุท้ายใบ</label><textarea id="qNote" rows="3"></textarea></div>
+
+          <h3>มัดจำ และยอดค้าง</h3>
+          <div class="tiles" id="payTiles"></div>
+          <div class="next" id="payNext"></div>
+          <div class="row">
+            <div class="field" style="flex:0 1 150px"><label for="pType">ประเภท</label><select id="pType"><option>มัดจำ</option><option>ชำระเพิ่ม</option><option>ชำระส่วนที่เหลือ</option></select></div>
+            <div class="field"><label for="pAmt">รับจริง (บาท)</label><input type="number" id="pAmt" min="0" step="any" inputmode="decimal"></div>
+            <button class="btn primary" id="addPay" type="button">บันทึกรับเงิน</button>
+          </div>
+          <div class="pays" id="payList"></div>
+        </div>
+
+        <div class="card sticky">
+          <div class="actions">
+            <button class="btn primary" id="saveQuote" type="button">บันทึกใบนี้</button>
+            <button class="btn" id="saveImg" type="button">บันทึกเป็นรูป</button>
+            <button class="btn" id="copyText" type="button">คัดลอกข้อความส่ง LINE</button>
+            <button class="btn" id="printBtn" type="button">พิมพ์ / PDF</button>
+          </div>
+          <div class="seg" role="group" aria-label="เลือกเอกสาร" id="paperSeg"><button type="button" data-mode="quote" aria-pressed="true">ใบเสนอราคา</button><button type="button" data-mode="job" aria-pressed="false">ใบสั่งงานช่าง (ไม่มีราคา)</button></div>
+          <div class="row" id="jobFields" hidden>
+            <div class="field"><label for="jDue">นัดส่ง</label><input type="date" id="jDue" style="width:100%;padding:9px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2)"></div>
+            <div class="field"><label for="jMachine">เครื่อง / ช่าง</label><input type="text" id="jMachine" placeholder="เช่น เครื่องพิมพ์ 1"></div>
+            <div class="field" style="flex-basis:100%"><label for="jNote">หมายเหตุถึงช่าง</label><input type="text" id="jNote" placeholder="เช่น เผื่อขอบ 5 ซม. สำหรับพับ"></div>
+          </div>
+          <div class="paper-scroll"><div class="paper" id="paper"></div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== HISTORY ===== -->
+    <section id="tab-history" data-view="history" hidden>
+      <div class="card" style="margin-bottom:12px">
+        <div class="row" style="justify-content:space-between;align-items:center">
+          <h2>ใบเสนอราคาที่บันทึกไว้</h2>
+          <input type="text" id="hSearch" class="search" placeholder="ค้นหาชื่อลูกค้า หรือเลขที่" aria-label="ค้นหา">
+        </div>
+        <div class="tiles" id="histTiles"></div>
+        <div class="chips" id="histFilter" role="group" aria-label="กรองตามสถานะ"></div>
+      </div>
+      <div class="hist" id="histList"></div>
+    </section>
+
+    <!-- ===== PRICES ===== -->
+    <section id="tab-prices" data-view="prices" hidden>
+      <div class="grid">
+        <div class="card">
+          <h2>วัสดุ และราคาต่อตารางเมตร</h2>
+          <p class="muted" style="margin:0">ขั้นต่ำ คือราคาต่ำสุดต่อชิ้น ใช้กับป้ายเล็กที่คิดตามพื้นที่แล้วถูกเกินไป</p>
+          <div class="set-table" id="setMats"></div>
+          <div><button class="btn small" type="button" data-addrow="materials">+ เพิ่มวัสดุ</button></div>
+
+          <h2>งานเสริม</h2>
+          <div class="set-table" id="setAddons"></div>
+          <div><button class="btn small" type="button" data-addrow="addons">+ เพิ่มงานเสริม</button></div>
+
+          <h2>ค่าบริการ (ปุ่มลัดในใบเสนอราคา)</h2>
+          <div class="set-table" id="setSvcs"></div>
+          <div><button class="btn small" type="button" data-addrow="services">+ เพิ่มค่าบริการ</button></div>
+        </div>
+
+        <div class="card">
+          <h2>ข้อมูลร้าน (แสดงบนใบเสนอราคา)</h2>
+          <div class="field"><label for="sName">ชื่อร้าน</label><input type="text" id="sName" data-shop="name"></div>
+          <div class="field"><label for="sAddr">ที่อยู่</label><textarea id="sAddr" rows="2" data-shop="address"></textarea></div>
+          <div class="row">
+            <div class="field"><label for="sPhone">โทร</label><input type="text" id="sPhone" data-shop="phone"></div>
+            <div class="field"><label for="sLine">LINE</label><input type="text" id="sLine" data-shop="line"></div>
+          </div>
+          <div class="field"><label for="sTax">เลขประจำตัวผู้เสียภาษี (ถ้ามี)</label><input type="text" id="sTax" data-shop="taxId"></div>
+          <div class="field"><label for="sBank">บัญชีรับโอน</label><input type="text" id="sBank" data-shop="bank"></div>
+          <div class="field"><label for="sNote">เงื่อนไขเริ่มต้นท้ายใบ</label><textarea id="sNote" rows="3" data-shop="note"></textarea></div>
+          <div class="row">
+            <div class="field"><label for="sValid">ยืนราคา (วัน)</label><input type="number" id="sValid" min="1" data-shop="validDays" data-num="1"></div>
+            <div class="field"><label for="sDep">มัดจำเริ่มต้น (%)</label><input type="number" id="sDep" min="0" max="100" data-shop="deposit" data-num="1"></div>
+            <div class="field"><label for="sRound">ปัดราคาต่อชิ้นขึ้นทีละ (บาท)</label>
+              <select id="sRound" data-shop="roundTo" data-num="1"><option value="1">1</option><option value="5">5</option><option value="10">10</option><option value="50">50</option><option value="100">100</option></select>
+            </div>
+          </div>
+          <label class="toggle"><input type="checkbox" id="sVat" data-shop="vat"> คิด VAT 7% เป็นค่าเริ่มต้น</label>
+        </div>
+      </div>
+      <div class="card" style="margin-top:20px">
+        <h2>สำรองข้อมูล และอัปเดตโปรแกรม</h2>
+        <p class="muted" style="margin:0">ข้อมูลทั้งหมดเก็บอยู่ในเครื่องนี้ สำรองเป็นไฟล์ไว้ทุกสัปดาห์ ถ้าเครื่องเสียหรือเปลี่ยนเครื่อง เอาไฟล์นั้นมากู้คืนได้</p>
+        <div class="backup-state" id="backupState"></div>
+        <div class="actions">
+          <button class="btn primary" id="exportBtn" type="button">สำรองข้อมูลเป็นไฟล์</button>
+          <label class="btn" for="importFile">กู้คืนจากไฟล์</label><input type="file" id="importFile" accept=".json,application/json" hidden>
+          <button class="btn" id="checkUpd" type="button">ตรวจหาอัปเดต</button>
+          <button class="btn" id="showNews" type="button">ดูว่ามีอะไรใหม่</button>
+        </div>
+      </div>
+      <div class="savebar">
+        <button class="btn primary" id="saveCfg" type="button">บันทึกราคา</button>
+        <button class="btn" id="resetCfg" type="button">ยกเลิกที่แก้</button>
+        <span class="muted" id="cfgState"></span>
+      </div>
+    </section>
+  </div>
+</main>
+
+<script>
+(() => {
+'use strict';
+const $ = s => document.querySelector(s);
+const $$ = s => Array.from(document.querySelectorAll(s));
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const num = v => { const n = parseFloat(v); return isFinite(n) ? n : 0; };
+const fmt = n => num(n).toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const fmt0 = n => num(n).toLocaleString('th-TH', { maximumFractionDigits: 2 });
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+const clone = o => JSON.parse(JSON.stringify(o));
+const store = {
+  get(k) { try { const v = localStorage.getItem('signq:' + k); return v ? JSON.parse(v) : null; } catch { return null; } },
+  set(k, v) { try { localStorage.setItem('signq:' + k, JSON.stringify(v)); } catch {} }
+};
+const todayISO = () => { const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 10); };
+const thDate = iso => { try { return new Date(iso + 'T00:00:00').toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' }); } catch { return iso; } };
+const addDays = (iso, n) => { const d = new Date(iso + 'T00:00:00'); d.setDate(d.getDate() + n); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 10); };
+
+/* ---------- Thai baht text ---------- */
+const DIG = ['ศูนย์','หนึ่ง','สอง','สาม','สี่','ห้า','หก','เจ็ด','แปด','เก้า'];
+const POS = ['','สิบ','ร้อย','พัน','หมื่น','แสน'];
+function read6(s) {
+  s = s.replace(/^0+/, ''); let out = '';
+  for (let i = 0; i < s.length; i++) {
+    const d = +s[i], p = s.length - 1 - i;
+    if (!d) continue;
+    if (p === 0 && d === 1 && s.length > 1) out += 'เอ็ด';
+    else if (p === 1 && d === 1) out += 'สิบ';
+    else if (p === 1 && d === 2) out += 'ยี่สิบ';
+    else out += DIG[d] + POS[p];
+  }
+  return out;
+}
+function readInt(s) {
+  s = s.replace(/^0+/, '');
+  if (!s) return '';
+  if (s.length > 6) return readInt(s.slice(0, -6)) + 'ล้าน' + read6(s.slice(-6));
+  return read6(s);
+}
+function bahtText(n) {
+  n = Math.round(num(n) * 100);
+  if (n < 0) return 'ลบ' + bahtText(-n / 100);
+  const b = Math.floor(n / 100), st = n % 100;
+  if (!b && !st) return 'ศูนย์บาทถ้วน';
+  return (b ? readInt(String(b)) + 'บาท' : '') + (st ? readInt(String(st)) + 'สตางค์' : 'ถ้วน');
+}
+
+/* ---------- default (example) prices ---------- */
+const DEFAULT_CONFIG = {
+  example: true,
+  shop: {
+    name: 'ร้านป้ายตัวอย่าง', address: '99/9 ถ.มิตรภาพ ต.ในเมือง อ.เมือง จ.ขอนแก่น 40000',
+    phone: '08x-xxx-xxxx', line: '@yourshop', taxId: '',
+    bank: 'กสิกรไทย 000-0-00000-0 ชื่อบัญชี ร้านป้ายตัวอย่าง',
+    note: 'ราคานี้รวมค่าออกแบบเบื้องต้น แก้แบบได้ 2 ครั้ง\nเริ่มผลิตหลังยืนยันแบบและชำระมัดจำ ใช้เวลา 1-3 วันทำการ',
+    validDays: 15, deposit: 50, vat: false, roundTo: 10
+  },
+  materials: [
+    { id: 'vinyl', name: 'ไวนิล พิมพ์อิงค์เจ็ท', price: 180, min: 150 },
+    { id: 'vinyl-bk', name: 'ไวนิลหลังดำ (กันแสงทะลุ)', price: 260, min: 200 },
+    { id: 'pvc', name: 'สติกเกอร์ PVC ขาว', price: 350, min: 150 },
+    { id: 'clear', name: 'สติกเกอร์ใส', price: 400, min: 150 },
+    { id: 'frost', name: 'สติกเกอร์ฝ้า (ติดกระจก)', price: 450, min: 200 },
+    { id: 'diecut', name: 'สติกเกอร์ไดคัทตัวอักษร', price: 650, min: 300 },
+    { id: 'pp', name: 'ฟิวเจอร์บอร์ด + สติกเกอร์', price: 650, min: 200 },
+    { id: 'zinc', name: 'ป้ายซิงค์ + สติกเกอร์', price: 1200, min: 400 },
+    { id: 'acrylic', name: 'อะคริลิก 3 มม. พิมพ์ UV', price: 2800, min: 500 },
+    { id: 'lightbox', name: 'กล่องไฟ (หน้าป้ายอะคริลิก)', price: 6500, min: 3500 }
+  ],
+  addons: [
+    { id: 'eyelet', name: 'เจาะตาไก่', type: 'eyelet', price: 5 },
+    { id: 'hem', name: 'พับขอบ / เชื่อมขอบ', type: 'm', price: 20 },
+    { id: 'laminate', name: 'เคลือบผิว (ด้าน/เงา)', type: 'sqm', price: 120 },
+    { id: 'wood', name: 'โครงไม้', type: 'sqm', price: 350 },
+    { id: 'steel', name: 'โครงเหล็กกล่อง', type: 'sqm', price: 650 }
+  ],
+  services: [
+    { id: 'design', name: 'ค่าออกแบบ', price: 300 },
+    { id: 'install', name: 'ค่าติดตั้ง', price: 500 },
+    { id: 'ship', name: 'ค่าขนส่ง', price: 300 }
+  ]
+};
+const ADDON_TYPES = { sqm: 'ต่อ ตร.ม.', m: 'ต่อเมตร (รอบขอบ)', pc: 'ต่อชิ้น', eyelet: 'ต่อตาไก่ 1 ตัว' };
+const SIZES = [[29.7,42],[50,100],[60,120],[80,160],[100,200],[100,300],[120,240],[150,300],[200,400],[300,500]];
+
+/* ---------- state ---------- */
+let config = normalizeCfg(store.get('config') || clone(DEFAULT_CONFIG));
+let cfgDraft = clone(config); let cfgDirty = false;
+let quotes = store.get('quotes') || [];
+let db = null, mode = 'local';
+let calcS = store.get('calc') || { mat: 'vinyl', w: 120, h: 240, unit: 'cm', qty: 1, addons: ['eyelet'], sp: 50 };
+let quote = store.get('draft') || sampleDraft();
+
+function normalizeCfg(c) {
+  const d = DEFAULT_CONFIG;
+  c = c && typeof c === 'object' ? c : clone(d);
+  c.shop = Object.assign({}, d.shop, c.shop || {});
+  for (const k of ['materials', 'addons', 'services']) if (!Array.isArray(c[k])) c[k] = clone(d[k]);
+  return c;
+}
+function blankDraft() {
+  return { id: null, no: '', date: todayISO(), customer: { name: '', phone: '', addr: '' }, items: [], discount: 0,
+    vat: !!config.shop.vat, deposit: num(config.shop.deposit), note: config.shop.note, example: false, payments: [], job: { due: '', machine: '', note: '' } };
+}
+function sampleDraft() {
+  const q = blankDraft();
+  q.example = true;
+  q.customer = { name: 'ร้านกาแฟบ้านสวน (ตัวอย่าง)', phone: '08x-xxx-xxxx', addr: 'หน้าร้าน ติดถนนใหญ่' };
+  q.items = [
+    { id: uid(), desc: 'ไวนิล พิมพ์อิงค์เจ็ท', detail: 'ขนาด 120×240 ซม. (2.88 ตร.ม.) · เจาะตาไก่ 16 ตัว', qty: 1, price: 600, size: '120×240 ซม.', mat: 'ไวนิล พิมพ์อิงค์เจ็ท', finish: 'เจาะตาไก่ 16 ตัว', area: 2.88 },
+    { id: uid(), desc: 'สติกเกอร์ฝ้า (ติดกระจก)', detail: 'ขนาด 80×200 ซม. (1.60 ตร.ม.)', qty: 2, price: 720, size: '80×200 ซม.', mat: 'สติกเกอร์ฝ้า (ติดกระจก)', finish: '', area: 1.6 },
+    { id: uid(), desc: 'ค่าติดตั้ง', detail: '', qty: 1, price: 500 }
+  ];
+  return q;
+}
+const saveCalc = () => store.set('calc', calcS);
+const saveDraft = () => store.set('draft', quote);
+
+/* ---------- calc ---------- */
+function eyeletGrid(wcm, hcm, sp) {
+  sp = Math.max(10, num(sp) || 50);
+  const nx = Math.max(1, Math.ceil(wcm / sp)), ny = Math.max(1, Math.ceil(hcm / sp));
+  return { nx, ny, count: 2 * (nx + ny) };
+}
+function roundUp(n, step) { step = num(step) || 1; return Math.ceil((n - 1e-9) / step) * step; }
+function compute(c = calcS) {
+  const m = config.materials.find(x => x.id === c.mat) || config.materials[0] || { name: '-', price: 0, min: 0 };
+  const k = c.unit === 'm' ? 100 : 1;
+  const wcm = num(c.w) * k, hcm = num(c.h) * k;
+  const area = wcm * hcm / 10000, perim = 2 * (wcm + hcm) / 100;
+  const qty = Math.max(1, Math.floor(num(c.qty)) || 1);
+  const lines = [];
+  let matCost = area * num(m.price), minNote = '';
+  if (num(m.min) && matCost < num(m.min) && area > 0) { matCost = num(m.min); minNote = `ขั้นต่ำ ${fmt0(m.min)} บาท/ชิ้น`; }
+  lines.push({ label: `${m.name}`, note: `${area.toFixed(2)} ตร.ม. × ${fmt0(m.price)} บาท` + (minNote ? ` → ${minNote}` : ''), amt: matCost });
+  const extras = []; let eye = null;
+  for (const a of config.addons) {
+    if (!c.addons.includes(a.id)) continue;
+    let q = 0, note = '';
+    if (a.type === 'sqm') { q = area; note = `${area.toFixed(2)} ตร.ม. × ${fmt0(a.price)}`; }
+    else if (a.type === 'm') { q = perim; note = `รอบขอบ ${perim.toFixed(2)} ม. × ${fmt0(a.price)}`; }
+    else if (a.type === 'pc') { q = 1; note = `${fmt0(a.price)} ต่อชิ้น`; }
+    else if (a.type === 'eyelet') { eye = eyeletGrid(wcm, hcm, c.sp); q = area > 0 ? eye.count : 0; note = `${q} ตัว × ${fmt0(a.price)}`; }
+    const amt = q * num(a.price);
+    lines.push({ label: a.name, note, amt });
+    extras.push(a.type === 'eyelet' ? `${a.name} ${q} ตัว` : a.name);
+  }
+  const raw = lines.reduce((s, l) => s + l.amt, 0);
+  const per = area > 0 ? roundUp(raw, config.shop.roundTo) : 0;
+  return { m, wcm, hcm, area, perim, qty, lines, raw, per, total: per * qty, extras, eye };
+}
+const unitLbl = () => calcS.unit === 'm' ? 'ม.' : 'ซม.';
+
+function renderMatList() {
+  if (!config.materials.some(m => m.id === calcS.mat) && config.materials[0]) calcS.mat = config.materials[0].id;
+  $('#matList').innerHTML = config.materials.map(m => `
+    <label class="mat"><input type="radio" name="mat" value="${esc(m.id)}" ${m.id === calcS.mat ? 'checked' : ''}>
+      <b>${esc(m.name)}</b><span>${fmt0(m.price)} บาท / ตร.ม.${num(m.min) ? ` · ขั้นต่ำ ${fmt0(m.min)}` : ''}</span></label>`).join('');
+  $('#addonList').innerHTML = config.addons.map(a => `
+    <label class="addon"><input type="checkbox" value="${esc(a.id)}" ${calcS.addons.includes(a.id) ? 'checked' : ''}>
+      <span class="nm">${esc(a.name)}</span><span class="pr">${fmt0(a.price)} บาท ${esc(ADDON_TYPES[a.type] || '')}</span></label>`).join('');
+}
+function renderCalcInputs() {
+  $('#cW').value = calcS.w; $('#cH').value = calcS.h; $('#cQty').value = calcS.qty; $('#cSp').value = calcS.sp;
+  $('#uCm').setAttribute('aria-pressed', calcS.unit === 'cm'); $('#uM').setAttribute('aria-pressed', calcS.unit === 'm');
+  $('#sizeChips').innerHTML = SIZES.map(([w, h]) => {
+    const f = calcS.unit === 'm' ? 0.01 : 1;
+    return `<button type="button" class="chip" data-w="${w}" data-h="${h}">${fmt0(w * f)} × ${fmt0(h * f)}</button>`;
+  }).join('');
+}
+function signSvg(r) {
+  const W = 320, H = 200, pad = 26;
+  if (!(r.wcm > 0 && r.hcm > 0)) return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="ยังไม่ได้ใส่ขนาด"><text x="${W/2}" y="${H/2}" text-anchor="middle" fill="var(--muted)" font-size="13">ใส่ขนาดเพื่อดูรูปป้าย</text></svg>`;
+  const s = Math.min((W - pad * 2) / r.wcm, (H - pad * 2) / r.hcm);
+  const w = r.wcm * s, h = r.hcm * s, x = (W - w) / 2, y = (H - h) / 2;
+  let dots = '';
+  if (r.eye && calcS.addons.includes('eyelet')) {
+    const { nx, ny } = r.eye, pts = [];
+    for (let i = 0; i <= nx; i++) { pts.push([x + w * i / nx, y]); pts.push([x + w * i / nx, y + h]); }
+    for (let j = 1; j < ny; j++) { pts.push([x, y + h * j / ny]); pts.push([x + w, y + h * j / ny]); }
+    const inset = Math.min(4, w / 8, h / 8);
+    dots = pts.map(([px, py]) => `<circle cx="${(px + Math.sign(x + w / 2 - px) * inset).toFixed(1)}" cy="${(py + Math.sign(y + h / 2 - py) * inset).toFixed(1)}" r="2.4" fill="var(--surface)" stroke="var(--muted)" stroke-width="1"/>`).join('');
+  }
+  const u = unitLbl(), f = calcS.unit === 'm' ? 0.01 : 1;
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="ป้ายขนาด ${fmt0(r.wcm * f)} คูณ ${fmt0(r.hcm * f)} ${u}">
+    <rect x="${x}" y="${y}" width="${w}" height="${h}" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.5" rx="1"/>
+    <rect x="${x}" y="${y}" width="${Math.min(w, 40)}" height="3" fill="var(--c)"/><rect x="${x + Math.min(w, 40)}" y="${y}" width="0" height="3"/>
+    ${dots}
+    <text x="${W / 2}" y="${y - 8}" text-anchor="middle" font-size="12" fill="var(--ink)" font-family="Sarabun, sans-serif">${fmt0(r.wcm * f)} ${u}</text>
+    <text x="${x + w + 8}" y="${y + h / 2}" font-size="12" fill="var(--ink)" font-family="Sarabun, sans-serif" dominant-baseline="middle">${fmt0(r.hcm * f)}</text>
+    <text x="${W / 2}" y="${y + h / 2}" text-anchor="middle" dominant-baseline="middle" font-size="13" fill="var(--accent)" font-family="Sarabun, sans-serif" font-weight="600">${r.area.toFixed(2)} ตร.ม.</text>
+  </svg>`;
+}
+function renderResult() {
+  const r = compute();
+  $('#spacingField').hidden = !calcS.addons.includes('eyelet') || !config.addons.some(a => a.type === 'eyelet' && calcS.addons.includes(a.id));
+  $('#signSvg').innerHTML = signSvg(r);
+  $('#rTotal').innerHTML = `฿${fmt0(r.total)}<small>${r.qty > 1 ? `รวม ${r.qty} ชิ้น` : 'ต่อชิ้น'}</small>`;
+  $('#rSub').textContent = r.area > 0
+    ? `${r.qty > 1 ? `ชิ้นละ ${fmt0(r.per)} บาท · ` : ''}พื้นที่ ${r.area.toFixed(2)} ตร.ม. (${(r.area * 10.7639).toFixed(2)} ตร.ฟุต) ต่อชิ้น`
+    : 'ใส่ขนาดป้ายก่อน';
+  $('#lineMsg').textContent = r.area > 0 ? lineMsg(r) : 'ใส่ขนาดป้ายแล้วข้อความจะขึ้นตรงนี้';
+  $('#copyPrice').disabled = !(r.area > 0);
+  renderSizeTable();
+  const rounded = r.per - r.raw;
+  $('#rLines').innerHTML = r.lines.map(l => `<div><span>${esc(l.label)}<br><span class="note">${esc(l.note)}</span></span><span>${fmt(l.amt)}</span></div>`).join('')
+    + (rounded > 0.004 ? `<div><span class="note">ปัดขึ้นทีละ ${fmt0(config.shop.roundTo)} บาท</span><span class="note">+${fmt(rounded)}</span></div>` : '')
+    + `<div class="sum"><span>ราคาต่อชิ้น</span><span>${fmt(r.per)}</span></div>`;
+  $('#addToQuote').disabled = !(r.area > 0);
+  $('#rHint').textContent = quote.items.length ? `ใบเสนอราคาตอนนี้มี ${quote.items.length} รายการ` : '';
+  return r;
+}
+function sizeStr(r, unit) { const f = unit === 'm' ? 0.01 : 1; return `${fmt0(r.wcm * f)}×${fmt0(r.hcm * f)} ${unit === 'm' ? 'ม.' : 'ซม.'}`; }
+function lineMsg(r) {
+  const s = config.shop;
+  return `${r.m.name} ${sizeStr(r, calcS.unit)}${r.qty > 1 ? ` × ${r.qty} ผืน` : ''}${r.extras.length ? ' + ' + r.extras.join(' + ') : ''}\n`
+    + (r.qty > 1 ? `ชิ้นละ ${fmt0(r.per)} บาท รวม ${fmt0(r.total)} บาท` : `ราคา ${fmt0(r.per)} บาท`)
+    + `\n(ราคายืน ${fmt0(s.validDays)} วัน · ${s.name})`;
+}
+function renderSizeTable() {
+  const m = config.materials.find(x => x.id === calcS.mat);
+  $('#stMat').textContent = m ? m.name : '';
+  const names = config.addons.filter(a => calcS.addons.includes(a.id)).map(a => a.name);
+  $('#stNote').textContent = names.length ? `รวม ${names.join(', ')}` : 'ไม่รวมงานเสริม';
+  const cur = compute();
+  $('#sizeTable').innerHTML = `<thead><tr><th>ขนาด (ซม.)</th><th>ตร.ม.</th><th>ราคา/ชิ้น</th><th>5 ชิ้น</th><th>10 ชิ้น</th></tr></thead><tbody>` +
+    SIZES.map(([w, h]) => {
+      const r = compute({ ...calcS, w, h, unit: 'cm', qty: 1 });
+      const on = Math.abs(cur.wcm - w) < 0.01 && Math.abs(cur.hcm - h) < 0.01;
+      return `<tr class="${on ? 'on' : ''}" data-w="${w}" data-h="${h}" tabindex="0"><td>${fmt0(w)} × ${fmt0(h)}</td><td>${r.area.toFixed(2)}</td><td><b>${fmt0(r.per)}</b></td><td>${fmt0(r.per * 5)}</td><td>${fmt0(r.per * 10)}</td></tr>`;
+    }).join('') + '</tbody>';
+}
+function renderCalc() { renderMatList(); renderCalcInputs(); renderResult(); }
+
+/* ---------- quote ---------- */
+function totals(q) {
+  const sub = q.items.reduce((s, it) => s + num(it.qty) * num(it.price), 0);
+  const disc = Math.min(num(q.discount), sub);
+  const after = sub - disc;
+  const vat = q.vat ? Math.round(after * 7) / 100 : 0;
+  const grand = after + vat;
+  const dep = Math.ceil(grand * num(q.deposit) / 100);
+  const paid = (q.payments || []).reduce((s, p) => s + num(p.amount), 0);
+  const bal = Math.max(0, Math.round((grand - paid) * 100) / 100);
+  let st, msg;
+  if (!q.items.length) { st = 'none'; msg = 'ยังไม่มีรายการ'; }
+  else if (paid >= grand - 0.004) { st = 'paid'; msg = paid > grand + 0.004 ? `ชำระครบแล้ว (รับเกิน ฿${fmt(paid - grand)} ต้องทอนคืน)` : 'ชำระครบแล้ว ส่งงานได้เลย'; }
+  else if (paid <= 0) { st = 'wait'; msg = dep > 0 ? `รอรับมัดจำ ฿${fmt(dep)} ก่อนเริ่มผลิต` : `รอชำระ ฿${fmt(grand)}`; }
+  else if (paid < dep - 0.004) { st = 'partial'; msg = `มัดจำยังไม่ครบ ขาดอีก ฿${fmt(dep - paid)}`; }
+  else { st = 'prod'; msg = `มัดจำครบแล้ว เริ่มผลิตได้ · เก็บอีก ฿${fmt(bal)} ตอนส่งงาน`; }
+  return { sub, disc, after, vat, grand, dep, paid, bal, st, msg };
+}
+const ST_LABEL = { wait: 'รอมัดจำ', partial: 'มัดจำไม่ครบ', prod: 'กำลังผลิต', paid: 'ชำระครบ', none: 'ว่าง' };
+function renderPay() {
+  const t = totals(quote);
+  $('#payTiles').innerHTML = `
+    <div class="tile"><span>ยอดสุทธิ</span><b>${fmt(t.grand)}</b></div>
+    <div class="tile"><span>มัดจำที่ต้องได้</span><b>${fmt(t.dep)}</b></div>
+    <div class="tile good"><span>รับแล้ว</span><b>${fmt(t.paid)}</b></div>
+    <div class="tile ${t.bal > 0 && t.paid > 0 ? 'hot' : ''}"><span>ค้างชำระ</span><b>${fmt(t.bal)}</b></div>`;
+  const nx = $('#payNext'); nx.className = 'next s-' + t.st; nx.textContent = t.msg;
+  const pays = quote.payments || [];
+  $('#payList').innerHTML = pays.map((p, i) => `<div class="pay"><span>${thDate(p.date)} · ${esc(p.type)}</span><span>฿${fmt(p.amount)} <button class="rm" type="button" data-rmpay="${i}" aria-label="ลบรายการรับเงิน ${i + 1}">×</button></span></div>`).join('');
+  const sug = t.paid < t.dep ? t.dep - t.paid : t.bal;
+  $('#pAmt').placeholder = sug > 0 ? fmt0(sug) : '0';
+  $('#pType').value = t.paid <= 0 && t.dep > 0 ? 'มัดจำ' : (t.paid >= t.dep ? 'ชำระส่วนที่เหลือ' : 'ชำระเพิ่ม');
+}
+function nextNo(dateIso) {
+  const d = new Date((dateIso || todayISO()) + 'T00:00:00');
+  const prefix = `QT${String((d.getFullYear() + 543) % 100).padStart(2, '0')}${String(d.getMonth() + 1).padStart(2, '0')}-`;
+  let max = 0;
+  for (const q of quotes) if (q.no && q.no.startsWith(prefix)) max = Math.max(max, parseInt(q.no.slice(prefix.length)) || 0);
+  return prefix + String(max + 1).padStart(3, '0');
+}
+function renderQuoteForm() {
+  $('#qHeading').textContent = quote.id ? `แก้ไข ${quote.no}` : 'ใบเสนอราคาใหม่';
+  $('#qName').value = quote.customer.name; $('#qPhone').value = quote.customer.phone; $('#qAddr').value = quote.customer.addr;
+  $('#qDate').value = quote.date; $('#qDisc').value = quote.discount || ''; $('#qDep').value = quote.deposit;
+  $('#qVat').checked = !!quote.vat; $('#qNote').value = quote.note || '';
+  const j = quote.job || {};
+  $('#jDue').value = j.due || ''; $('#jMachine').value = j.machine || ''; $('#jNote').value = j.note || '';
+  renderItemsEd(); renderSvcChips(); renderPay();
+}
+function renderItemsEd() {
+  const el = $('#itemsEd');
+  if (!quote.items.length) { el.innerHTML = `<div class="empty">ยังไม่มีรายการ ไปที่แท็บ <a href="#calc">คิดราคา</a> แล้วกด “เพิ่มลงใบเสนอราคา” หรือเพิ่มรายการเองด้านล่าง</div>`; }
+  else el.innerHTML = quote.items.map((it, i) => `
+    <div class="item" data-i="${i}">
+      <div class="desc">
+        <input type="text" data-k="desc" value="${esc(it.desc)}" aria-label="ชื่อรายการ ${i + 1}" placeholder="ชื่อรายการ">
+        <input type="text" class="detail" data-k="detail" value="${esc(it.detail)}" aria-label="รายละเอียดรายการ ${i + 1}" placeholder="รายละเอียด (ขนาด, งานเสริม)">
+      </div>
+      <div><label for="iq${i}">จำนวน</label><input id="iq${i}" type="number" min="0" step="1" inputmode="decimal" data-k="qty" value="${esc(it.qty)}"></div>
+      <div><label for="ip${i}">ราคา/หน่วย</label><input id="ip${i}" type="number" min="0" step="any" inputmode="decimal" data-k="price" value="${esc(it.price)}"></div>
+      <button class="rm" type="button" data-rm="${i}" aria-label="ลบรายการ ${i + 1}">×</button>
+      <div class="amt" data-amt="${i}">รวม ${fmt(num(it.qty) * num(it.price))} บาท</div>
+    </div>`).join('');
+  $('#itemCount').textContent = quote.items.length;
+}
+function renderSvcChips() {
+  $('#svcChips').innerHTML = config.services.map((s, i) => `<button type="button" class="chip" data-svc="${i}">+ ${esc(s.name)} ${fmt0(s.price)}</button>`).join('');
+}
+let paperMode = 'quote';
+function renderJobPaper() {
+  const s = config.shop, q = quote, j = q.job || {};
+  const jobNo = (q.no || nextNo(q.date)).replace(/^QT/, 'JOB');
+  const signs = q.items.filter(it => it.size), others = q.items.filter(it => !it.size);
+  const rows = signs.length ? signs.map((it, i) => `<tr><td class="c">${i + 1}</td><td><b>${esc(it.size)}</b></td><td class="c"><b>${fmt0(it.qty)}</b></td><td>${esc(it.mat || it.desc)}</td><td>${esc(it.finish || '-')}</td><td class="num">${it.area ? (num(it.area) * num(it.qty)).toFixed(2) : '-'}</td></tr>`).join('')
+    : `<tr><td colspan="6" class="c" style="color:#888;padding:18px">ยังไม่มีป้ายที่มีขนาด เพิ่มจากแท็บคิดราคา</td></tr>`;
+  const totalArea = signs.reduce((a, it) => a + num(it.area) * num(it.qty), 0);
+  $('#paper').innerHTML = `
+    <div class="ph">
+      <div class="shop"><b>${esc(s.name)}</b><div>ใช้ภายในร้าน · ไม่แสดงราคา</div></div>
+      <div class="doc-title"><b>ใบสั่งงานช่าง</b><span>WORK ORDER</span></div>
+    </div>
+    <div class="strip"><i></i><i></i><i></i><i></i></div>
+    <div class="meta">
+      <div class="box"><div class="k">ลูกค้า</div><b>${esc(q.customer.name) || '-'}</b>${q.customer.phone ? `<div>โทร ${esc(q.customer.phone)}</div>` : ''}${q.customer.addr ? `<div>${esc(q.customer.addr)}</div>` : ''}</div>
+      <div class="box kv"><span>เลขงาน</span><b>${esc(jobNo)}</b><span>วันรับงาน</span><span>${thDate(q.date)}</span><span>นัดส่ง</span><b>${j.due ? thDate(j.due) : '-'}</b><span>เครื่อง/ช่าง</span><span>${esc(j.machine) || '-'}</span></div>
+    </div>
+    <table><thead><tr><th class="c" style="width:32px">#</th><th>ขนาด</th><th class="c" style="width:56px">จำนวน</th><th>วัสดุ</th><th>งานเก็บ</th><th class="num" style="width:80px">พื้นที่รวม ตร.ม.</th></tr></thead><tbody>${rows}</tbody></table>
+    ${signs.length ? `<div style="text-align:right;margin-top:6px;font-weight:600">รวมพื้นที่พิมพ์ ${totalArea.toFixed(2)} ตร.ม.</div>` : ''}
+    ${others.length ? `<div class="notes"><b>งานอื่น</b>${others.map(o => '• ' + esc(o.desc) + (num(o.qty) > 1 ? ` × ${fmt0(o.qty)}` : '')).join('\n')}</div>` : ''}
+    ${j.note ? `<div class="notes"><b>หมายเหตุถึงช่าง</b>${esc(j.note)}</div>` : ''}
+    <div class="sign"><div>ผู้สั่งงาน</div><div>ช่างผู้รับงาน / วันที่เสร็จ</div></div>`;
+}
+function renderPaper() {
+  if (paperMode === 'job') return renderJobPaper();
+  const s = config.shop, q = quote, t = totals(q);
+  const valid = addDays(q.date || todayISO(), num(s.validDays) || 15);
+  const contact = [s.address, [s.phone && `โทร ${s.phone}`, s.line && `LINE ${s.line}`].filter(Boolean).join(' · '), s.taxId && `เลขผู้เสียภาษี ${s.taxId}`].filter(Boolean).join('\n');
+  const rows = q.items.length ? q.items.map((it, i) => `<tr><td class="c">${i + 1}</td><td>${esc(it.desc) || '-'}${it.detail ? `<small>${esc(it.detail)}</small>` : ''}</td><td class="num">${fmt0(it.qty)}</td><td class="num">${fmt(it.price)}</td><td class="num">${fmt(num(it.qty) * num(it.price))}</td></tr>`).join('')
+    : `<tr><td colspan="5" class="c" style="color:#888;padding:18px">ยังไม่มีรายการ</td></tr>`;
+  $('#paper').innerHTML = `
+    ${q.example ? '<div class="ex">ตัวอย่าง</div>' : ''}
+    <div class="ph">
+      <div class="shop"><b>${esc(s.name)}</b><div>${esc(contact)}</div></div>
+      <div class="doc-title"><b>ใบเสนอราคา</b><span>QUOTATION</span></div>
+    </div>
+    <div class="strip"><i></i><i></i><i></i><i></i></div>
+    <div class="meta">
+      <div class="box"><div class="k">ลูกค้า</div><b>${esc(q.customer.name) || '-'}</b>${q.customer.phone ? `<div>โทร ${esc(q.customer.phone)}</div>` : ''}${q.customer.addr ? `<div>${esc(q.customer.addr)}</div>` : ''}</div>
+      <div class="box kv"><span>เลขที่</span><b>${esc(q.no || nextNo(q.date))}</b><span>วันที่</span><span>${thDate(q.date)}</span><span>ยืนราคาถึง</span><span>${thDate(valid)}</span></div>
+    </div>
+    <table><thead><tr><th class="c" style="width:36px">#</th><th>รายการ</th><th class="num" style="width:56px">จำนวน</th><th class="num" style="width:96px">ราคา/หน่วย</th><th class="num" style="width:104px">จำนวนเงิน</th></tr></thead><tbody>${rows}</tbody></table>
+    <div class="tot">
+      <div class="baht"><span class="k">จำนวนเงินตัวอักษร</span>(${bahtText(t.grand)})</div>
+      <div class="lines">
+        <div><span>รวมเป็นเงิน</span><span>${fmt(t.sub)}</span></div>
+        ${t.disc ? `<div><span>ส่วนลด</span><span>-${fmt(t.disc)}</span></div>` : ''}
+        ${q.vat ? `<div><span>ภาษีมูลค่าเพิ่ม 7%</span><span>${fmt(t.vat)}</span></div>` : ''}
+        <div class="grand"><span>ยอดสุทธิ</span><span>${fmt(t.grand)}</span></div>
+        ${num(q.deposit) ? `<div><span>มัดจำ ${fmt0(q.deposit)}%</span><span>${fmt(t.dep)}</span></div>` : ''}
+        ${t.paid > 0 ? `<div><span>รับชำระแล้ว</span><span>${fmt(t.paid)}</span></div><div style="font-weight:700"><span>คงเหลือชำระ</span><span>${fmt(t.bal)}</span></div>` : ''}
+      </div>
+    </div>
+    ${(q.note || s.bank) ? `<div class="notes">${q.note ? `<b>เงื่อนไข</b>${esc(q.note)}` : ''}${s.bank ? `${q.note ? '\n\n' : ''}<b>ชำระเงิน</b>${esc(s.bank)}` : ''}</div>` : ''}
+    <div class="sign"><div>ผู้เสนอราคา</div><div>ผู้อนุมัติสั่งซื้อ / วันที่</div></div>`;
+}
+function renderQuoteLive() {
+  quote.items.forEach((it, i) => { const a = document.querySelector(`[data-amt="${i}"]`); if (a) a.textContent = `รวม ${fmt(num(it.qty) * num(it.price))} บาท`; });
+  renderPaper(); renderPay(); saveDraft();
+}
+function touchQuote() { if (quote.example) { quote.example = false; } }
+
+/* ---------- history ---------- */
+let histFilter = 'all';
+function renderHistory() {
+  const term = $('#hSearch').value.trim().toLowerCase();
+  const all = quotes.map(q => ({ q, t: totals(Object.assign({ items: [] }, q)) }));
+  const owed = all.filter(x => x.t.paid > 0 && x.t.bal > 0).reduce((s, x) => s + x.t.bal, 0);
+  const waitN = all.filter(x => x.t.st === 'wait' || x.t.st === 'partial').length;
+  const prodN = all.filter(x => x.t.st === 'prod').length;
+  $('#histTiles').innerHTML = `
+    <div class="tile"><span>ใบทั้งหมด</span><b>${all.length}</b></div>
+    <div class="tile"><span>รอมัดจำ</span><b>${waitN}</b></div>
+    <div class="tile"><span>กำลังผลิต</span><b>${prodN}</b></div>
+    <div class="tile ${owed > 0 ? 'hot' : ''}"><span>ยอดค้างเก็บ (มัดจำแล้ว)</span><b>${fmt(owed)}</b></div>`;
+  const F = [['all', 'ทั้งหมด'], ['wait', 'รอมัดจำ'], ['prod', 'กำลังผลิต'], ['paid', 'ชำระครบ']];
+  $('#histFilter').innerHTML = F.map(([k, l]) => `<button type="button" class="chip" data-f="${k}" aria-pressed="${histFilter === k}">${l}</button>`).join('');
+  const list = all.sort((a, b) => num(b.q.createdAt) - num(a.q.createdAt))
+    .filter(({ t }) => histFilter === 'all' || t.st === histFilter || (histFilter === 'wait' && t.st === 'partial'))
+    .filter(({ q }) => !term || (q.no || '').toLowerCase().includes(term) || (q.customer?.name || '').toLowerCase().includes(term));
+  $('#histList').innerHTML = list.length ? list.map(({ q, t }) => `
+    <div class="hrow">
+      <span class="no">${esc(q.no)}</span>
+      <span class="who"><b>${esc(q.customer?.name) || '(ไม่มีชื่อ)'}</b><span class="muted"><span class="pill s-${t.st}">${ST_LABEL[t.st]}</span> ${thDate(q.date)} · ${(q.items || []).length} รายการ${t.paid > 0 && t.bal > 0 ? ` · ค้าง ฿${fmt(t.bal)}` : ''}</span></span>
+      <span class="amt">฿${fmt(t.grand)}</span>
+      <span class="actions acts"><button class="btn small" data-open="${esc(q.id)}">เปิด</button><button class="btn small" data-dup="${esc(q.id)}">ทำสำเนา</button><button class="btn small danger" data-del="${esc(q.id)}">ลบ</button></span>
+    </div>`).join('')
+    : `<div class="empty">${term ? 'ไม่พบใบที่ค้นหา' : 'ยังไม่มีใบเสนอราคาที่บันทึกไว้ ทำใบในแท็บ “ใบเสนอราคา” แล้วกด “บันทึกใบนี้” ใบนั้นจะมาอยู่ที่นี่'}</div>`;
+}
+
+/* ---------- prices editor ---------- */
+function renderSettings() {
+  const c = cfgDraft;
+  $('#setMats').innerHTML = `<div class="set-row mat-r head"><span>ชื่อวัสดุ</span><span>บาท/ตร.ม.</span><span>ขั้นต่ำ/ชิ้น</span><span></span></div>` +
+    c.materials.map((m, i) => `<div class="set-row mat-r">
+      <input type="text" data-list="materials" data-i="${i}" data-k="name" value="${esc(m.name)}" aria-label="ชื่อวัสดุ ${i + 1}">
+      <input type="number" min="0" data-list="materials" data-i="${i}" data-k="price" value="${esc(m.price)}" aria-label="ราคาต่อตารางเมตร ${esc(m.name)}">
+      <input type="number" min="0" data-list="materials" data-i="${i}" data-k="min" value="${esc(m.min)}" aria-label="ขั้นต่ำ ${esc(m.name)}">
+      <button class="rm" type="button" data-rmrow="materials" data-i="${i}" aria-label="ลบ ${esc(m.name)}">×</button></div>`).join('');
+  $('#setAddons').innerHTML = `<div class="set-row add-r head"><span>งานเสริม</span><span>คิดราคา</span><span>บาท</span><span></span></div>` +
+    c.addons.map((a, i) => `<div class="set-row add-r">
+      <input type="text" data-list="addons" data-i="${i}" data-k="name" value="${esc(a.name)}" aria-label="ชื่องานเสริม ${i + 1}">
+      <select data-list="addons" data-i="${i}" data-k="type" aria-label="วิธีคิดราคา ${esc(a.name)}">${Object.entries(ADDON_TYPES).map(([k, v]) => `<option value="${k}" ${a.type === k ? 'selected' : ''}>${v}</option>`).join('')}</select>
+      <input type="number" min="0" data-list="addons" data-i="${i}" data-k="price" value="${esc(a.price)}" aria-label="ราคา ${esc(a.name)}">
+      <button class="rm" type="button" data-rmrow="addons" data-i="${i}" aria-label="ลบ ${esc(a.name)}">×</button></div>`).join('');
+  $('#setSvcs').innerHTML = c.services.map((s, i) => `<div class="set-row svc-r">
+      <input type="text" data-list="services" data-i="${i}" data-k="name" value="${esc(s.name)}" aria-label="ชื่อค่าบริการ ${i + 1}">
+      <input type="number" min="0" data-list="services" data-i="${i}" data-k="price" value="${esc(s.price)}" aria-label="ราคา ${esc(s.name)}">
+      <button class="rm" type="button" data-rmrow="services" data-i="${i}" aria-label="ลบ ${esc(s.name)}">×</button></div>`).join('');
+  $$('[data-shop]').forEach(el => { const v = c.shop[el.dataset.shop]; if (el.type === 'checkbox') el.checked = !!v; else el.value = v ?? ''; });
+  setCfgState();
+}
+function setCfgState() { $('#cfgState').textContent = cfgDirty ? 'มีการแก้ไขที่ยังไม่บันทึก' : (mode === 'cloud' ? 'ราคาตรงกับที่บันทึกไว้' : 'ราคาเก็บไว้ในเครื่องนี้'); $('#resetCfg').disabled = !cfgDirty; }
+function markCfgDirty() { cfgDirty = true; setCfgState(); }
+
+/* ---------- global renders ---------- */
+function applyConfig() {
+  $('#hdrShop').textContent = config.shop.name || 'ร้านป้าย';
+  $('#exampleNotice').hidden = !config.example;
+  renderCalc(); renderSvcChips(); renderPaper();
+  if (!cfgDirty) { cfgDraft = clone(config); renderSettings(); }
+}
+function setMode(m, text) {
+  mode = m;
+  $('#status').classList.toggle('cloud', m === 'cloud');
+  $('#statusText').textContent = text || (m === 'cloud' ? 'บันทึกออนไลน์ เปิดเครื่องไหนก็เห็น' : 'บันทึกในเครื่องนี้เท่านั้น');
+  setCfgState();
+}
+function toast(msg) {
+  const t = document.createElement('div'); t.className = 'toast'; t.textContent = msg; t.setAttribute('role', 'status');
+  document.body.appendChild(t); setTimeout(() => t.remove(), 2600);
+}
+async function copy(text) {
+  try { await navigator.clipboard.writeText(text); toast('คัดลอกแล้ว'); }
+  catch { showOverlay(`<h2>คัดลอกข้อความ</h2><p class="muted" style="margin:0">กดค้างที่ข้อความ แล้วเลือกคัดลอก</p><textarea id="copyBox" rows="12" readonly>${esc(text)}</textarea>`); const b = $('#copyBox'); b.focus(); b.select(); }
+}
+function showOverlay(html) {
+  const o = document.createElement('div'); o.className = 'overlay';
+  o.innerHTML = `<div class="sheet" role="dialog" aria-modal="true">${html}<div class="actions"><button class="btn" type="button" data-close>ปิด</button></div></div>`;
+  o.addEventListener('click', e => { if (e.target === o || e.target.closest('[data-close]')) o.remove(); });
+  document.body.appendChild(o); o.querySelector('[data-close]').focus();
+}
+
+/* ---------- routing ---------- */
+const VIEWS = ['calc', 'quote', 'history', 'prices'];
+function route() {
+  const v = VIEWS.includes(location.hash.slice(1)) ? location.hash.slice(1) : 'calc';
+  $$('[data-view]').forEach(s => s.hidden = s.dataset.view !== v);
+  $$('.tabs a').forEach(a => a.toggleAttribute('aria-current', false));
+  const cur = document.querySelector(`.tabs a[data-tab="${v}"]`); if (cur) cur.setAttribute('aria-current', 'page');
+  if (v === 'quote') renderPaper();
+  if (v === 'history') renderHistory();
+  if (v === 'calc') renderResult();
+}
+window.addEventListener('hashchange', () => { route(); window.scrollTo(0, 0); });
+
+/* ---------- events: calculator ---------- */
+$('#matList').addEventListener('change', e => { if (e.target.name === 'mat') { calcS.mat = e.target.value; saveCalc(); renderResult(); } });
+$('#addonList').addEventListener('change', e => {
+  const id = e.target.value; calcS.addons = calcS.addons.filter(x => x !== id); if (e.target.checked) calcS.addons.push(id); saveCalc(); renderResult();
+});
+for (const [sel, key] of [['#cW', 'w'], ['#cH', 'h'], ['#cQty', 'qty'], ['#cSp', 'sp']]) $(sel).addEventListener('input', e => { calcS[key] = e.target.value; saveCalc(); renderResult(); });
+$$('.seg button').forEach(b => b.addEventListener('click', () => {
+  const u = b.dataset.unit; if (u === calcS.unit) return;
+  const f = u === 'm' ? 0.01 : 100;
+  calcS.w = +(num(calcS.w) * f).toFixed(3); calcS.h = +(num(calcS.h) * f).toFixed(3); calcS.unit = u; saveCalc(); renderCalcInputs(); renderResult();
+}));
+$('#sizeChips').addEventListener('click', e => {
+  const b = e.target.closest('[data-w]'); if (!b) return; const f = calcS.unit === 'm' ? 0.01 : 1;
+  calcS.w = +(b.dataset.w * f).toFixed(3); calcS.h = +(b.dataset.h * f).toFixed(3); saveCalc(); renderCalcInputs(); renderResult();
+});
+$('#qMinus').addEventListener('click', () => { calcS.qty = Math.max(1, (parseInt(calcS.qty) || 1) - 1); $('#cQty').value = calcS.qty; saveCalc(); renderResult(); });
+$('#qPlus').addEventListener('click', () => { calcS.qty = (parseInt(calcS.qty) || 0) + 1; $('#cQty').value = calcS.qty; saveCalc(); renderResult(); });
+$('#addToQuote').addEventListener('click', () => {
+  const r = compute(); if (!(r.area > 0)) return;
+  const size = sizeStr(r, calcS.unit);
+  const detail = [`ขนาด ${size} (${r.area.toFixed(2)} ตร.ม.)`, ...r.extras].join(' · ');
+  if (quote.example) { quote = blankDraft(); renderQuoteForm(); }
+  quote.items.push({ id: uid(), desc: r.m.name, detail, qty: r.qty, price: r.per, size, mat: r.m.name, finish: r.extras.join(' + '), area: +r.area.toFixed(4) });
+  saveDraft(); renderItemsEd(); renderPaper(); renderPay(); renderResult();
+  toast(`เพิ่มแล้ว ใบเสนอราคามี ${quote.items.length} รายการ`);
+});
+$('#copyPrice').addEventListener('click', () => { const r = compute(); if (r.area > 0) copy(lineMsg(r)); });
+$('#sizeTable').addEventListener('click', e => { const tr = e.target.closest('tr[data-w]'); if (tr) pickSize(tr); });
+$('#sizeTable').addEventListener('keydown', e => { const tr = e.target.closest('tr[data-w]'); if (tr && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); pickSize(tr); } });
+function pickSize(tr) { const f = calcS.unit === 'm' ? 0.01 : 1; calcS.w = +(tr.dataset.w * f).toFixed(3); calcS.h = +(tr.dataset.h * f).toFixed(3); saveCalc(); renderCalcInputs(); renderResult(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+
+/* ---------- events: quote ---------- */
+const custMap = { '#qName': 'name', '#qPhone': 'phone', '#qAddr': 'addr' };
+for (const [sel, k] of Object.entries(custMap)) $(sel).addEventListener('input', e => { touchQuote(); quote.customer[k] = e.target.value; renderQuoteLive(); });
+$('#qDate').addEventListener('input', e => { quote.date = e.target.value || todayISO(); renderQuoteLive(); });
+$('#qDisc').addEventListener('input', e => { quote.discount = num(e.target.value); renderQuoteLive(); });
+$('#qDep').addEventListener('input', e => { quote.deposit = Math.min(100, Math.max(0, num(e.target.value))); renderQuoteLive(); });
+$('#qVat').addEventListener('change', e => { quote.vat = e.target.checked; renderQuoteLive(); });
+$('#qNote').addEventListener('input', e => { quote.note = e.target.value; renderQuoteLive(); });
+$('#itemsEd').addEventListener('input', e => {
+  const row = e.target.closest('[data-i]'); if (!row) return; const it = quote.items[+row.dataset.i]; const k = e.target.dataset.k; if (!it || !k) return;
+  it[k] = (k === 'qty' || k === 'price') ? e.target.value : e.target.value; touchQuote(); renderQuoteLive();
+});
+$('#itemsEd').addEventListener('click', e => {
+  const b = e.target.closest('[data-rm]'); if (!b) return; quote.items.splice(+b.dataset.rm, 1); touchQuote(); renderItemsEd(); renderQuoteLive();
+});
+$('#svcChips').addEventListener('click', e => {
+  const b = e.target.closest('[data-svc]'); if (!b) return; const s = config.services[+b.dataset.svc]; if (!s) return;
+  if (quote.example) quote = Object.assign(blankDraft(), { items: [] }), renderQuoteForm();
+  quote.items.push({ id: uid(), desc: s.name, detail: '', qty: 1, price: num(s.price) }); renderItemsEd(); renderQuoteLive();
+});
+$('#addBlank').addEventListener('click', () => {
+  touchQuote(); quote.items.push({ id: uid(), desc: '', detail: '', qty: 1, price: 0 }); renderItemsEd(); renderQuoteLive();
+  const ins = $$('#itemsEd [data-k="desc"]'); ins[ins.length - 1]?.focus();
+});
+$('#newQuote').addEventListener('click', () => { quote = blankDraft(); saveDraft(); renderQuoteForm(); renderPaper(); toast('เริ่มใบเสนอราคาใหม่แล้ว'); });
+$('#saveQuote').addEventListener('click', () => persistQuote());
+async function persistQuote(okMsg) {
+  if (!quote.items.length) { toast('ยังไม่มีรายการ เพิ่มรายการก่อนบันทึก'); return false; }
+  const btn = $('#saveQuote'); btn.disabled = true;
+  quote.example = false;
+  if (!quote.no) quote.no = nextNo(quote.date);
+  if (!quote.id) { quote.id = 'q' + uid(); quote.createdAt = Date.now(); }
+  quote.updatedAt = Date.now(); quote.total = totals(quote).grand;
+  const doc = clone(quote);
+  try {
+    if (db) await db.collection('quotes').doc(doc.id).set(doc);
+    else { quotes = quotes.filter(q => q.id !== doc.id).concat(doc); store.set('quotes', quotes); }
+    saveDraft(); renderQuoteForm(); renderPaper(); toast(okMsg || `บันทึก ${doc.no} แล้ว`); return true;
+  } catch (err) {
+    toast(err?.code === 'invalid_argument' ? 'บัญชีนี้ไม่มีสิทธิ์บันทึก' : 'บันทึกไม่สำเร็จ ลองอีกครั้ง'); return false;
+  } finally { btn.disabled = false; }
+}
+$('#copyText').addEventListener('click', () => {
+  const t = totals(quote), s = config.shop;
+  const lines = [`ใบเสนอราคา ${quote.no || nextNo(quote.date)} · ${s.name}`, `ลูกค้า: ${quote.customer.name || '-'}`, ''];
+  quote.items.forEach((it, i) => lines.push(`${i + 1}. ${it.desc}${it.detail ? ` (${it.detail})` : ''}\n   ${fmt0(it.qty)} × ${fmt(it.price)} = ${fmt(num(it.qty) * num(it.price))} บาท`));
+  lines.push('', `รวม ${fmt(t.sub)} บาท`);
+  if (t.disc) lines.push(`ส่วนลด ${fmt(t.disc)} บาท`);
+  if (quote.vat) lines.push(`VAT 7% ${fmt(t.vat)} บาท`);
+  lines.push(`ยอดสุทธิ ${fmt(t.grand)} บาท (${bahtText(t.grand)})`);
+  if (num(quote.deposit)) lines.push(`มัดจำ ${fmt0(quote.deposit)}% = ${fmt(t.dep)} บาท`);
+  if (s.bank) lines.push('', `โอนเข้า: ${s.bank}`);
+  copy(lines.join('\n'));
+});
+$('#saveImg').addEventListener('click', async () => {
+  if (!window.html2canvas) { toast('ตัวสร้างรูปโหลดไม่สำเร็จ ลองเปิดโปรแกรมใหม่'); return; }
+  const btn = $('#saveImg'); btn.disabled = true; btn.textContent = 'กำลังสร้างรูป…';
+  try {
+    try { await document.fonts.ready; } catch {}
+    const canvas = await window.html2canvas($('#paper'), { scale: 2, backgroundColor: '#ffffff', windowWidth: 1100, onclone: d => d.getElementById('paper').classList.add('export') });
+    const blob = await new Promise(r => canvas.toBlob(r, 'image/png'));
+    const name = `${paperMode === 'job' ? (quote.no || nextNo(quote.date)).replace(/^QT/, 'JOB') : (quote.no || nextNo(quote.date))}.png`;
+    if (blob) {
+      const file = new File([blob], name, { type: 'image/png' });
+      if (matchMedia('(pointer: coarse)').matches && navigator.canShare && navigator.canShare({ files: [file] })) {
+        try { await navigator.share({ files: [file], title: name }); return; } catch (err) { if (err && err.name === 'AbortError') return; }
+      }
+      downloadBlob(blob, name); toast('บันทึกรูปแล้ว'); return;
+    }
+    showOverlay(`<h2>รูปใบเสนอราคา</h2><p class="muted" style="margin:0">กดค้างที่รูปเพื่อบันทึก หรือคลิกขวาแล้วเลือกบันทึกรูป</p><img alt="ใบเสนอราคา ${esc(quote.no)}" src="${canvas.toDataURL('image/png')}">`);
+  } catch { toast('สร้างรูปไม่สำเร็จ'); }
+  finally { btn.disabled = false; btn.textContent = 'บันทึกเป็นรูป'; }
+});
+
+$('#addPay').addEventListener('click', async () => {
+  const amt = num($('#pAmt').value) || num(String($('#pAmt').placeholder).replace(/,/g, ''));
+  if (!(amt > 0)) { toast('ใส่จำนวนเงินที่รับจริงก่อน'); return; }
+  if (!quote.items.length) { toast('ยังไม่มีรายการในใบนี้'); return; }
+  touchQuote();
+  quote.payments = (quote.payments || []).concat({ id: uid(), date: todayISO(), type: $('#pType').value, amount: amt });
+  $('#pAmt').value = '';
+  renderPay(); renderPaper(); saveDraft();
+  await persistQuote(`รับเงิน ฿${fmt(amt)} แล้ว`);
+});
+$('#payList').addEventListener('click', async e => {
+  const b = e.target.closest('[data-rmpay]'); if (!b) return;
+  if (b.dataset.armed !== '1') { b.dataset.armed = '1'; b.textContent = 'ลบ?'; setTimeout(() => { if (b.isConnected) { b.dataset.armed = ''; b.textContent = '×'; } }, 3000); return; }
+  quote.payments.splice(+b.dataset.rmpay, 1); renderPay(); renderPaper(); saveDraft();
+  if (quote.id) await persistQuote('ลบรายการรับเงินแล้ว');
+});
+$('#paperSeg').addEventListener('click', e => {
+  const b = e.target.closest('[data-mode]'); if (!b) return; paperMode = b.dataset.mode;
+  $$('#paperSeg button').forEach(x => x.setAttribute('aria-pressed', x === b)); $('#jobFields').hidden = paperMode !== 'job'; renderPaper();
+});
+for (const [sel, k] of [['#jDue', 'due'], ['#jMachine', 'machine'], ['#jNote', 'note']]) $(sel).addEventListener('input', e => { quote.job = Object.assign({ due: '', machine: '', note: '' }, quote.job); quote.job[k] = e.target.value; renderPaper(); saveDraft(); });
+$('#histFilter').addEventListener('click', e => { const b = e.target.closest('[data-f]'); if (b) { histFilter = b.dataset.f; renderHistory(); } });
+
+/* ---------- events: history ---------- */
+$('#hSearch').addEventListener('input', renderHistory);
+$('#histList').addEventListener('click', async e => {
+  const b = e.target.closest('button'); if (!b) return;
+  const id = b.dataset.open || b.dataset.dup || b.dataset.del; const q = quotes.find(x => x.id === id); if (!q) return;
+  if (b.dataset.open) { quote = Object.assign(blankDraft(), clone(q)); saveDraft(); renderQuoteForm(); location.hash = 'quote'; }
+  else if (b.dataset.dup) {
+    quote = Object.assign(blankDraft(), clone(q), { id: null, no: '', date: todayISO(), createdAt: null, payments: [] });
+    quote.items = quote.items.map(it => ({ ...it, id: uid() })); saveDraft(); renderQuoteForm(); location.hash = 'quote'; toast('ทำสำเนาแล้ว แก้แล้วกดบันทึกเป็นใบใหม่');
+  } else if (b.dataset.del) {
+    if (b.dataset.armed !== '1') { b.dataset.armed = '1'; b.textContent = 'ยืนยันลบ'; setTimeout(() => { if (b.isConnected) { b.dataset.armed = ''; b.textContent = 'ลบ'; } }, 3000); return; }
+    try {
+      if (db) await db.collection('quotes').doc(id).delete();
+      else { quotes = quotes.filter(x => x.id !== id); store.set('quotes', quotes); renderHistory(); }
+      if (quote.id === id) { quote.id = null; quote.no = ''; saveDraft(); renderQuoteForm(); renderPaper(); }
+      toast(`ลบ ${q.no} แล้ว`);
+    } catch { toast('ลบไม่สำเร็จ'); }
+  }
+});
+
+/* ---------- events: prices ---------- */
+$('#tab-prices').addEventListener('input', e => {
+  const el = e.target;
+  if (el.dataset.list) { const row = cfgDraft[el.dataset.list][+el.dataset.i]; if (!row) return; row[el.dataset.k] = (el.type === 'number') ? num(el.value) : el.value; markCfgDirty(); }
+  else if (el.dataset.shop) { cfgDraft.shop[el.dataset.shop] = el.type === 'checkbox' ? el.checked : (el.dataset.num ? num(el.value) : el.value); markCfgDirty(); }
+});
+$('#tab-prices').addEventListener('change', e => { if (e.target.tagName === 'SELECT' || e.target.type === 'checkbox') e.target.dispatchEvent(new Event('input', { bubbles: true })); });
+$('#tab-prices').addEventListener('click', e => {
+  const add = e.target.closest('[data-addrow]'), rm = e.target.closest('[data-rmrow]');
+  if (add) {
+    const L = add.dataset.addrow;
+    cfgDraft[L].push(L === 'materials' ? { id: 'm' + uid(), name: '', price: 0, min: 0 } : L === 'addons' ? { id: 'a' + uid(), name: '', type: 'pc', price: 0 } : { id: 's' + uid(), name: '', price: 0 });
+    markCfgDirty(); renderSettings(); const ins = $$(`[data-list="${L}"][data-k="name"]`); ins[ins.length - 1]?.focus();
+  } else if (rm) { cfgDraft[rm.dataset.rmrow].splice(+rm.dataset.i, 1); markCfgDirty(); renderSettings(); }
+});
+$('#resetCfg').addEventListener('click', () => { cfgDirty = false; cfgDraft = clone(config); renderSettings(); });
+$('#saveCfg').addEventListener('click', async () => {
+  const c = clone(cfgDraft); c.example = false;
+  for (const L of ['materials', 'addons', 'services']) c[L] = c[L].filter(x => String(x.name).trim());
+  const btn = $('#saveCfg'); btn.disabled = true;
+  try {
+    if (db) await db.doc('shop/config').set(c);
+    store.set('config', c);
+    config = normalizeCfg(c); cfgDirty = false; applyConfig(); toast('บันทึกราคาแล้ว');
+  } catch (err) { toast(err?.code === 'invalid_argument' ? 'บัญชีนี้ไม่มีสิทธิ์แก้ราคา' : 'บันทึกไม่สำเร็จ ลองอีกครั้ง'); }
+  finally { btn.disabled = false; }
+});
+
+/* ---------- boot ---------- */
+applyConfig(); renderQuoteForm(); renderPaper(); route();
+setMode('local', 'กำลังเชื่อมต่อ…');
+
+/* ---------- app: version, updates, backup ---------- */
+const APP_VERSION = '1.0.0';
+const CHANGELOG = [{"v": "1.0.0", "date": "2026-11-16", "items": ["คิดราคาป้ายตามขนาดและวัสดุ คิดให้ทั้ง ตร.ม. และ ตร.ฟุต นับจำนวนตาไก่ให้เอง", "ข้อความตอบลูกค้าทาง LINE กดคัดลอกได้ทันที", "ตารางราคาไซซ์ยอดนิยม", "ใบเสนอราคา บันทึกเป็นรูป หรือพิมพ์เป็น PDF ได้", "ใบสั่งงานช่าง (ไม่แสดงราคา)", "ติดตามมัดจำและยอดค้าง ระบบบอกขั้นตอนต่อไปให้", "สำรองและกู้คืนข้อมูลเป็นไฟล์", "ใช้งานได้แม้ไม่มีอินเทอร์เน็ต และอัปเดตเวอร์ชันใหม่ได้ด้วยปุ่มเดียว"]}];
+function downloadBlob(blob, name) {
+  const url = URL.createObjectURL(blob); const a = document.createElement('a');
+  a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+}
+const vcmp = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < 3; i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) - (y[i] || 0); } return 0; };
+function showWhatsNew(since) {
+  const list = CHANGELOG.filter(c => !since || vcmp(c.v, since) > 0);
+  if (!list.length) return;
+  showOverlay(`<div class="whatsnew"><h2>มีอะไรใหม่ในเวอร์ชัน ${esc(APP_VERSION)}</h2>${list.map(c => `<h3>เวอร์ชัน ${esc(c.v)} · ${thDate(c.date)}</h3><ul>${c.items.map(x => `<li>${esc(x)}</li>`).join('')}</ul>`).join('')}</div>`);
+}
+$('#appVer').textContent = 'v' + APP_VERSION;
+setMode('local', 'เก็บข้อมูลในเครื่องนี้');
+(() => { const last = store.get('lastVersion'); if (last && last !== APP_VERSION) showWhatsNew(last); store.set('lastVersion', APP_VERSION); })();
+$('#showNews').addEventListener('click', () => showWhatsNew(null));
+$('#printBtn').addEventListener('click', () => window.print());
+try { navigator.storage && navigator.storage.persist && navigator.storage.persist(); } catch {}
+
+/* backup */
+function renderBackup() {
+  const t = store.get('lastBackup'), el = $('#backupState');
+  const days = t ? Math.floor((Date.now() - t) / 864e5) : null;
+  el.className = 'backup-state' + (days === null || days > 7 ? ' old' : '');
+  el.textContent = t ? `สำรองล่าสุด ${new Date(t).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' })}${days > 7 ? ` (ผ่านมา ${days} วันแล้ว ควรสำรองใหม่)` : ''} · มีใบเสนอราคา ${quotes.length} ใบ`
+    : `ยังไม่เคยสำรองข้อมูล · มีใบเสนอราคา ${quotes.length} ใบ`;
+}
+$('#exportBtn').addEventListener('click', () => {
+  const data = { app: 'signshop', version: APP_VERSION, exportedAt: new Date().toISOString(), config, quotes, draft: quote };
+  downloadBlob(new Blob([JSON.stringify(data, null, 1)], { type: 'application/json' }), `signshop-backup-${todayISO()}.json`);
+  store.set('lastBackup', Date.now()); renderBackup(); toast('สำรองข้อมูลแล้ว เก็บไฟล์ไว้ในที่ปลอดภัย');
+});
+$('#importFile').addEventListener('change', async e => {
+  const f = e.target.files && e.target.files[0]; e.target.value = ''; if (!f) return;
+  let data; try { data = JSON.parse(await f.text()); } catch { toast('ไฟล์นี้อ่านไม่ได้ ใช้ไฟล์ที่ได้จากปุ่มสำรองข้อมูล'); return; }
+  if (!data || data.app !== 'signshop' || !Array.isArray(data.quotes)) { toast('ไฟล์นี้ไม่ใช่ไฟล์สำรองของโปรแกรมนี้'); return; }
+  showOverlay(`<h2>กู้คืนข้อมูล</h2><p style="margin:0">ไฟล์สำรองวันที่ ${thDate(String(data.exportedAt).slice(0, 10))} มีใบเสนอราคา ${data.quotes.length} ใบ และราคาของร้าน “${esc(data.config?.shop?.name || '')}”</p><p class="muted" style="margin:0">ราคาและข้อมูลร้านจะถูกแทนด้วยของในไฟล์ ใบเสนอราคาจะรวมกับที่มีอยู่ ใบเดียวกันจะเก็บฉบับที่แก้ล่าสุด</p><div class="actions"><button class="btn primary" type="button" id="doImport">กู้คืน</button></div>`);
+  $('#doImport').addEventListener('click', () => {
+    const byId = new Map(quotes.map(q => [q.id, q]));
+    for (const q of data.quotes) { const cur = byId.get(q.id); if (!cur || num(q.updatedAt) >= num(cur.updatedAt)) byId.set(q.id, q); }
+    quotes = Array.from(byId.values()); store.set('quotes', quotes);
+    if (data.config) { config = normalizeCfg(data.config); store.set('config', config); cfgDirty = false; }
+    document.querySelector('.overlay')?.remove();
+    applyConfig(); renderHistory(); renderBackup(); toast('กู้คืนข้อมูลแล้ว');
+  });
+});
+renderBackup();
+
+/* install */
+let deferredInstall = null;
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredInstall = e; $('#installBtn').hidden = false; });
+$('#installBtn').addEventListener('click', async () => { if (!deferredInstall) return; deferredInstall.prompt(); try { await deferredInstall.userChoice; } catch {} deferredInstall = null; $('#installBtn').hidden = true; });
+window.addEventListener('appinstalled', () => { $('#installBtn').hidden = true; toast('ติดตั้งแล้ว เปิดได้จากหน้าจอหลัก'); });
+
+/* updates (service worker) */
+let swReg = null, waitingWorker = null;
+function offerUpdate(w) { waitingWorker = w; $('#updBar').hidden = false; }
+$('#updBtn').addEventListener('click', () => { if (waitingWorker) waitingWorker.postMessage('SKIP_WAITING'); else location.reload(); });
+$('#checkUpd').addEventListener('click', async () => {
+  if (!swReg) { toast(location.protocol === 'file:' ? 'เปิดจากไฟล์ในเครื่อง ตรวจอัปเดตอัตโนมัติไม่ได้' : 'ยังตรวจอัปเดตไม่ได้ ลองใหม่อีกครั้ง'); return; }
+  try { await swReg.update(); } catch {}
+  setTimeout(() => { if (swReg.waiting || swReg.installing) offerUpdate(swReg.waiting || waitingWorker); else toast(`ใช้เวอร์ชันล่าสุดอยู่แล้ว (v${APP_VERSION})`); }, 1500);
+});
+if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
+  navigator.serviceWorker.register('sw.js').then(reg => {
+    swReg = reg;
+    if (reg.waiting && navigator.serviceWorker.controller) offerUpdate(reg.waiting);
+    reg.addEventListener('updatefound', () => {
+      const w = reg.installing; if (!w) return;
+      w.addEventListener('statechange', () => { if (w.state === 'installed' && navigator.serviceWorker.controller) offerUpdate(w); });
+    });
+    setInterval(() => reg.update().catch(() => {}), 60 * 60 * 1000);
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) reg.update().catch(() => {}); });
+  }).catch(() => {});
+  let reloading = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => { if (reloading) return; reloading = true; location.reload(); });
+}
+})();
+</script>
+</body>
+</html>

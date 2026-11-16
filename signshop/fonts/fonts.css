@@ -1,0 +1,96 @@
+/* sarabun-thai-400-normal */
+@font-face {
+  font-family: 'Sarabun';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400;
+  src: url(sarabun-thai-400-normal.woff2) format('woff2');
+}
+/* sarabun-thai-500-normal */
+@font-face {
+  font-family: 'Sarabun';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 500;
+  src: url(sarabun-thai-500-normal.woff2) format('woff2');
+}
+/* sarabun-thai-600-normal */
+@font-face {
+  font-family: 'Sarabun';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 600;
+  src: url(sarabun-thai-600-normal.woff2) format('woff2');
+}
+/* sarabun-thai-700-normal */
+@font-face {
+  font-family: 'Sarabun';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 700;
+  src: url(sarabun-thai-700-normal.woff2) format('woff2');
+}
+/* sarabun-latin-400-normal */
+@font-face {
+  font-family: 'Sarabun';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400;
+  src: url(sarabun-latin-400-normal.woff2) format('woff2');
+}
+/* sarabun-latin-500-normal */
+@font-face {
+  font-family: 'Sarabun';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 500;
+  src: url(sarabun-latin-500-normal.woff2) format('woff2');
+}
+/* sarabun-latin-600-normal */
+@font-face {
+  font-family: 'Sarabun';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 600;
+  src: url(sarabun-latin-600-normal.woff2) format('woff2');
+}
+/* sarabun-latin-700-normal */
+@font-face {
+  font-family: 'Sarabun';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 700;
+  src: url(sarabun-latin-700-normal.woff2) format('woff2');
+}
+/* kanit-thai-500-normal */
+@font-face {
+  font-family: 'Kanit';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 500;
+  src: url(kanit-thai-500-normal.woff2) format('woff2');
+}
+/* kanit-thai-600-normal */
+@font-face {
+  font-family: 'Kanit';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 600;
+  src: url(kanit-thai-600-normal.woff2) format('woff2');
+}
+/* kanit-latin-500-normal */
+@font-face {
+  font-family: 'Kanit';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 500;
+  src: url(kanit-latin-500-normal.woff2) format('woff2');
+}
+/* kanit-latin-600-normal */
+@font-face {
+  font-family: 'Kanit';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 600;
+  src: url(kanit-latin-600-normal.woff2) format('woff2');
+}
