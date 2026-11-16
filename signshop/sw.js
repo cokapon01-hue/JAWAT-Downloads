@@ -1,6 +1,6 @@
 // คิดราคาป้าย service worker: keeps the app working offline and installs new versions.
 // To release an update, change VERSION (build_app.py does this). Shop data lives in localStorage and is never touched here.
-const VERSION = '1.2.1';
+const VERSION = '1.3.0';
 const CACHE = 'signshop-' + VERSION;
 const ASSETS = ["./", "index.html", "manifest.webmanifest", "fonts/fonts.css", "vendor/html2canvas.min.js", "icons/icon-192.png", "icons/icon-512.png", "icons/maskable-512.png", "icons/apple-touch-icon.png", "fonts/sarabun-thai-400-normal.woff2", "fonts/sarabun-thai-500-normal.woff2", "fonts/sarabun-thai-600-normal.woff2", "fonts/sarabun-thai-700-normal.woff2", "fonts/sarabun-latin-400-normal.woff2", "fonts/sarabun-latin-500-normal.woff2", "fonts/sarabun-latin-600-normal.woff2", "fonts/sarabun-latin-700-normal.woff2", "fonts/kanit-thai-500-normal.woff2", "fonts/kanit-thai-600-normal.woff2", "fonts/kanit-latin-500-normal.woff2", "fonts/kanit-latin-600-normal.woff2"];
 

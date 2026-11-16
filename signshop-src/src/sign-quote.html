@@ -115,6 +115,24 @@ input[type="number"] { font-variant-numeric: tabular-nums; }
 .price-big { font-family: var(--f-display); font-weight: 600; font-size: clamp(2rem, 5vw, 2.8rem); line-height: 1.1; font-variant-numeric: tabular-nums; }
 .price-big small { font-size: 1rem; font-weight: 500; color: var(--muted); margin-left: 6px; }
 .price-sub { color: var(--muted); font-size: .92rem; }
+.cust-pick { display: flex; gap: 10px; align-items: end; flex-wrap: wrap; padding: 12px; border-radius: 8px; background: var(--accent-soft); }
+.cust-pick .field { flex: 1 1 200px; }
+.seg.wide { display: flex; width: 100%; }
+.seg.wide button { flex: 1 1 0; padding: 10px 6px; }
+.special { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: .9rem; }
+.special s { color: var(--muted); }
+.special .save { color: var(--ok); font-weight: 600; }
+.tag { display: inline-block; padding: 2px 10px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-weight: 600; font-size: .82rem; }
+.mat .cr { color: var(--ok); font-weight: 700; }
+.custs { display: flex; flex-direction: column; gap: 8px; }
+.cust { border: 1px solid var(--line); border-radius: 8px; background: var(--surface-2); }
+.cust summary { cursor: pointer; padding: 10px 12px; display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+.cust[open] summary { border-bottom: 1px solid var(--line); }
+.cust-body { padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+.cust-body input { padding: 8px 10px; background: var(--surface); }
+.rates { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 6px 12px; }
+.rate { display: grid; grid-template-columns: minmax(0, 1fr) 96px; gap: 8px; align-items: center; font-size: .88rem; }
+.rate small { color: var(--muted); }
 .breakdown { display: flex; flex-direction: column; border-top: 1px dashed var(--line); }
 .breakdown div { display: flex; justify-content: space-between; gap: 12px; padding: 7px 0; border-bottom: 1px dashed var(--line); font-size: .93rem; }
 .breakdown div span:last-child { font-variant-numeric: tabular-nums; white-space: nowrap; }
@@ -296,6 +314,10 @@ input[type="number"] { font-variant-numeric: tabular-nums; }
     <section id="tab-calc" data-view="calc">
       <div class="grid">
         <div class="card">
+          <div class="cust-pick">
+            <div class="field"><label for="cCust">ลูกค้า</label><select id="cCust"></select></div>
+            <a class="btn small" href="#prices" id="gotoCusts">จัดการลูกค้าประจำ</a>
+          </div>
           <h2>1. เลือกวัสดุ</h2>
           <div class="mats" id="matList" role="radiogroup" aria-label="วัสดุ"></div>
 
@@ -315,6 +337,10 @@ input[type="number"] { font-variant-numeric: tabular-nums; }
           <h2>3. งานเสริม</h2>
           <div class="addons" id="addonList"></div>
           <div class="field" id="spacingField" hidden style="max-width:220px"><label for="cSp">ระยะห่างตาไก่ (ซม.)</label><input type="number" id="cSp" min="10" step="5" inputmode="numeric"></div>
+
+          <h2>4. ราคาพิเศษ <span class="muted" style="font-weight:400;font-size:.85rem">(ถ้ามี สำหรับงานนี้)</span></h2>
+          <div class="seg wide" role="group" aria-label="ปรับราคา" id="ovSeg"><button type="button" data-ov="none">ราคาปกติ</button><button type="button" data-ov="pct">ลด %</button><button type="button" data-ov="sqm">ราคา/ตร.ม.</button><button type="button" data-ov="piece">เหมาต่อชิ้น</button></div>
+          <div class="field" id="ovField" hidden style="max-width:260px"><label for="cOv" id="ovLabel">ราคา</label><input type="number" id="cOv" min="0" step="any" inputmode="decimal"></div>
         </div>
 
         <div class="card sticky" aria-live="polite">
@@ -323,6 +349,7 @@ input[type="number"] { font-variant-numeric: tabular-nums; }
             <div class="price-big" id="rTotal">฿0</div>
             <div class="price-sub" id="rSub"></div>
           </div>
+          <div class="special" id="rSpecial" hidden></div>
           <div class="msg">
             <div class="msg-head"><span>ข้อความตอบลูกค้า</span><button class="btn small primary" id="copyPrice" type="button">คัดลอก</button></div>
             <div class="bubble" id="lineMsg"></div>
@@ -354,6 +381,10 @@ input[type="number"] { font-variant-numeric: tabular-nums; }
             <button class="btn small" id="newQuote" type="button">เริ่มใบใหม่</button>
           </div>
           <h3>ลูกค้า</h3>
+          <div class="row">
+            <div class="field" style="flex:2 1 200px"><label for="qCustPick">เลือกลูกค้าประจำ</label><select id="qCustPick"></select></div>
+            <button class="btn small" type="button" id="saveAsCust">+ บันทึกเป็นลูกค้าประจำ</button>
+          </div>
           <div class="field"><label for="qName">ชื่อลูกค้า / ร้าน</label><input type="text" id="qName" autocomplete="off"></div>
           <div class="row">
             <div class="field"><label for="qPhone">เบอร์โทร</label><input type="tel" id="qPhone" autocomplete="off"></div>
@@ -439,6 +470,11 @@ input[type="number"] { font-variant-numeric: tabular-nums; }
           <h2>ค่าบริการ (ปุ่มลัดในใบเสนอราคา)</h2>
           <div class="set-table" id="setSvcs"></div>
           <div><button class="btn small" type="button" data-addrow="services">+ เพิ่มค่าบริการ</button></div>
+
+          <h2 id="custHeading">ลูกค้าประจำ</h2>
+          <p class="muted" style="margin:0">ตั้งส่วนลด % ทุกงาน หรือราคาพิเศษรายวัสดุ (บาท/ตร.ม.) แล้วเลือกลูกค้าในหน้าคิดราคา ราคาจะเปลี่ยนให้เอง ถ้าตั้งราคาพิเศษของวัสดุไหนไว้ วัสดุนั้นจะใช้ราคาพิเศษแทนส่วนลด %</p>
+          <div class="custs" id="setCusts"></div>
+          <div><button class="btn small" type="button" data-addrow="customers">+ เพิ่มลูกค้าประจำ</button></div>
         </div>
 
         <div class="card">
@@ -585,6 +621,8 @@ function normalizeCfg(c) {
   c = c && typeof c === 'object' ? c : clone(d);
   c.shop = Object.assign({}, d.shop, c.shop || {}, LOCKED_SHOP);
   for (const k of ['materials', 'addons', 'services']) if (!Array.isArray(c[k])) c[k] = clone(d[k]);
+  if (!Array.isArray(c.customers)) c.customers = [];
+  c.customers.forEach(cu => { if (!cu.rates || typeof cu.rates !== 'object') cu.rates = {}; });
   return c;
 }
 function blankDraft() {
@@ -612,16 +650,24 @@ function eyeletGrid(wcm, hcm, sp) {
   return { nx, ny, count: 2 * (nx + ny) };
 }
 function roundUp(n, step) { step = num(step) || 1; return Math.ceil((n - 1e-9) / step) * step; }
-function compute(c = calcS) {
+const custOf = id => (id && config.customers.find(x => x.id === id)) || null;
+const custRate = (cu, matId) => { const v = cu && cu.rates ? cu.rates[matId] : null; return v != null && v !== '' && num(v) > 0 ? num(v) : 0; };
+function compute(c = calcS, plain = false) {
   const m = config.materials.find(x => x.id === c.mat) || config.materials[0] || { name: '-', price: 0, min: 0 };
+  const cu = plain ? null : custOf(c.cust);
+  const ov = plain ? 'none' : (c.ov || 'none'), ovVal = num(c.ovVal);
+  const cr = ov === 'none' ? custRate(cu, m.id) : 0;
+  let sqm = num(m.price), rateNote = '';
+  if (cr) { sqm = cr; rateNote = ' (ราคาลูกค้าประจำ)'; }
+  if (ov === 'sqm' && ovVal > 0) { sqm = ovVal; rateNote = ' (ราคาพิเศษงานนี้)'; }
   const k = c.unit === 'm' ? 100 : 1;
   const wcm = num(c.w) * k, hcm = num(c.h) * k;
   const area = wcm * hcm / 10000, perim = 2 * (wcm + hcm) / 100;
   const qty = Math.max(1, Math.floor(num(c.qty)) || 1);
   const lines = [];
-  let matCost = area * num(m.price), minNote = '';
-  if (num(m.min) && matCost < num(m.min) && area > 0) { matCost = num(m.min); minNote = `ขั้นต่ำ ${fmt0(m.min)} บาท/ชิ้น`; }
-  lines.push({ label: `${m.name}`, note: `${area.toFixed(2)} ตร.ม. × ${fmt0(m.price)} บาท` + (minNote ? ` → ${minNote}` : ''), amt: matCost });
+  let matCost = area * sqm, minNote = '';
+  if (num(m.min) && matCost < num(m.min) && area > 0 && ov !== 'sqm') { matCost = num(m.min); minNote = `ขั้นต่ำ ${fmt0(m.min)} บาท/ชิ้น`; }
+  lines.push({ label: `${m.name}`, note: `${area.toFixed(2)} ตร.ม. × ${fmt0(sqm)} บาท${rateNote}` + (minNote ? ` → ${minNote}` : ''), amt: matCost });
   const extras = []; let eye = null;
   for (const a of config.addons) {
     if (!c.addons.includes(a.id)) continue;
@@ -635,16 +681,41 @@ function compute(c = calcS) {
     extras.push(a.type === 'eyelet' ? `${a.name} ${q} ตัว` : a.name);
   }
   const raw = lines.reduce((s, l) => s + l.amt, 0);
-  const per = area > 0 ? roundUp(raw, config.shop.roundTo) : 0;
-  return { m, wcm, hcm, area, perim, qty, lines, raw, per, total: per * qty, extras, eye };
+  let per = area > 0 ? roundUp(raw, config.shop.roundTo) : 0, pre = raw, special = '', adj = [];
+  const pct = ov === 'pct' ? Math.min(100, ovVal) : (ov === 'none' && cu && !cr ? Math.min(100, num(cu.discount)) : 0);
+  if (ov === 'piece' && ovVal > 0 && area > 0) {
+    per = ovVal; pre = ovVal; special = 'ราคาเหมาต่อชิ้น';
+    adj.push({ label: 'ราคาเหมาต่อชิ้น (แทนราคาที่คำนวณ)', amt: ovVal - raw });
+  } else if (pct > 0 && area > 0) {
+    pre = raw * (1 - pct / 100); per = roundUp(pre, config.shop.roundTo);
+    special = ov === 'pct' ? `ลด ${fmt0(pct)}%` : `ลูกค้าประจำ ลด ${fmt0(pct)}%`;
+    adj.push({ label: special, amt: -(raw - pre) });
+  } else if (cr) special = `ราคาลูกค้าประจำ ${fmt0(cr)} บาท/ตร.ม.`;
+  else if (ov === 'sqm' && ovVal > 0) special = `ราคาพิเศษ ${fmt0(ovVal)} บาท/ตร.ม.`;
+  const normal = plain ? per : compute(c, true).per;
+  return { m, wcm, hcm, area, perim, qty, lines, raw, pre, adj, per, total: per * qty, normal, special, cu, extras, eye };
 }
 const unitLbl = () => calcS.unit === 'm' ? 'ม.' : 'ซม.';
 
+function renderCustSelects() {
+  const opts = config.customers.map(cu => `<option value="${esc(cu.id)}">${esc(cu.name)}${num(cu.discount) ? ` (ลด ${fmt0(cu.discount)}%)` : ''}${Object.keys(cu.rates || {}).length ? ' · ราคาพิเศษ' : ''}</option>`).join('');
+  $('#cCust').innerHTML = `<option value="">ลูกค้าทั่วไป (ราคาปกติ)</option>` + opts;
+  $('#cCust').value = custOf(calcS.cust) ? calcS.cust : '';
+  $('#qCustPick').innerHTML = `<option value="">${config.customers.length ? '— เลือกเพื่อกรอกข้อมูลให้เอง —' : 'ยังไม่มีลูกค้าประจำ'}</option>` + opts;
+}
+function renderOv() {
+  const ov = calcS.ov || 'none';
+  $$('#ovSeg button').forEach(b => b.setAttribute('aria-pressed', b.dataset.ov === ov));
+  $('#ovField').hidden = ov === 'none';
+  $('#ovLabel').textContent = { pct: 'ส่วนลด (%)', sqm: 'ราคาต่อ ตร.ม. (บาท)', piece: 'ราคาเหมาต่อชิ้น (บาท)' }[ov] || '';
+  $('#cOv').value = calcS.ovVal ?? '';
+}
 function renderMatList() {
   if (!config.materials.some(m => m.id === calcS.mat) && config.materials[0]) calcS.mat = config.materials[0].id;
+  const cuSel = custOf(calcS.cust);
   $('#matList').innerHTML = config.materials.map(m => `
     <label class="mat"><input type="radio" name="mat" value="${esc(m.id)}" ${m.id === calcS.mat ? 'checked' : ''}>
-      <b>${esc(m.name)}</b><span>${fmt0(m.price)} บาท / ตร.ม.${num(m.min) ? ` · ขั้นต่ำ ${fmt0(m.min)}` : ''}</span></label>`).join('');
+      <b>${esc(m.name)}</b><span>${custRate(cuSel, m.id) && (calcS.ov || 'none') === 'none' ? `<s>${fmt0(m.price)}</s> <b class="cr">${fmt0(custRate(cuSel, m.id))}</b>` : fmt0(m.price)} บาท / ตร.ม.${num(m.min) ? ` · ขั้นต่ำ ${fmt0(m.min)}` : ''}</span></label>`).join('');
   $('#addonList').innerHTML = config.addons.map(a => `
     <label class="addon"><input type="checkbox" value="${esc(a.id)}" ${calcS.addons.includes(a.id) ? 'checked' : ''}>
       <span class="nm">${esc(a.name)}</span><span class="pr">${fmt0(a.price)} บาท ${esc(ADDON_TYPES[a.type] || '')}</span></label>`).join('');
@@ -691,8 +762,12 @@ function renderResult() {
   $('#lineMsg').textContent = r.area > 0 ? lineMsg(r) : 'ใส่ขนาดป้ายแล้วข้อความจะขึ้นตรงนี้';
   $('#copyPrice').disabled = !(r.area > 0);
   renderSizeTable();
-  const rounded = r.per - r.raw;
+  const sp = $('#rSpecial'), cheaper = r.area > 0 && r.normal > r.per;
+  sp.hidden = !(r.area > 0 && (r.special || r.per !== r.normal));
+  sp.innerHTML = sp.hidden ? '' : `<span class="tag">${esc(r.special || 'ราคาพิเศษ')}</span>${r.normal !== r.per ? `<s>ราคาปกติ ฿${fmt0(r.normal * r.qty)}</s>` : ''}${cheaper ? `<span class="save">ลูกค้าประหยัด ฿${fmt0((r.normal - r.per) * r.qty)}</span>` : ''}`;
+  const rounded = r.per - r.pre;
   $('#rLines').innerHTML = r.lines.map(l => `<div><span>${esc(l.label)}<br><span class="note">${esc(l.note)}</span></span><span>${fmt(l.amt)}</span></div>`).join('')
+    + r.adj.map(l => `<div><span>${esc(l.label)}</span><span>${l.amt < 0 ? '-' : '+'}${fmt(Math.abs(l.amt))}</span></div>`).join('')
     + (rounded > 0.004 ? `<div><span class="note">ปัดขึ้นทีละ ${fmt0(config.shop.roundTo)} บาท</span><span class="note">+${fmt(rounded)}</span></div>` : '')
     + `<div class="sum"><span>ราคาต่อชิ้น</span><span>${fmt(r.per)}</span></div>`;
   $('#addToQuote').disabled = !(r.area > 0);
@@ -704,6 +779,7 @@ function lineMsg(r) {
   const s = config.shop;
   return `${r.m.name} ${sizeStr(r, calcS.unit)}${r.qty > 1 ? ` × ${r.qty} ผืน` : ''}${r.extras.length ? ' + ' + r.extras.join(' + ') : ''}\n`
     + (r.qty > 1 ? `ชิ้นละ ${fmt0(r.per)} บาท รวม ${fmt0(r.total)} บาท` : `ราคา ${fmt0(r.per)} บาท`)
+    + (r.normal > r.per ? ` (ราคาพิเศษ${r.cu && !(calcS.ov && calcS.ov !== 'none') ? 'สำหรับลูกค้าประจำ' : ''} จากปกติ ${fmt0(r.normal * r.qty)} บาท)` : '')
     + `\n(ราคายืน ${fmt0(s.validDays)} วัน · ${s.name})`;
 }
 function renderSizeTable() {
@@ -714,12 +790,12 @@ function renderSizeTable() {
   const cur = compute();
   $('#sizeTable').innerHTML = `<thead><tr><th>ขนาด (ซม.)</th><th>ตร.ม.</th><th>ราคา/ชิ้น</th><th>5 ชิ้น</th><th>10 ชิ้น</th></tr></thead><tbody>` +
     SIZES.map(([w, h]) => {
-      const r = compute({ ...calcS, w, h, unit: 'cm', qty: 1 });
+      const r = compute({ ...calcS, w, h, unit: 'cm', qty: 1, ov: calcS.ov === 'piece' ? 'none' : calcS.ov });
       const on = Math.abs(cur.wcm - w) < 0.01 && Math.abs(cur.hcm - h) < 0.01;
       return `<tr class="${on ? 'on' : ''}" data-w="${w}" data-h="${h}" tabindex="0"><td>${fmt0(w)} × ${fmt0(h)}</td><td>${r.area.toFixed(2)}</td><td><b>${fmt0(r.per)}</b></td><td>${fmt0(r.per * 5)}</td><td>${fmt0(r.per * 10)}</td></tr>`;
     }).join('') + '</tbody>';
 }
-function renderCalc() { renderMatList(); renderCalcInputs(); renderResult(); }
+function renderCalc() { renderCustSelects(); renderOv(); renderMatList(); renderCalcInputs(); renderResult(); }
 
 /* ---------- quote ---------- */
 function totals(q) {
@@ -968,10 +1044,34 @@ function renderSettings() {
       <input type="text" data-list="services" data-i="${i}" data-k="name" value="${esc(s.name)}" aria-label="ชื่อค่าบริการ ${i + 1}">
       <input type="number" min="0" data-list="services" data-i="${i}" data-k="price" value="${esc(s.price)}" aria-label="ราคา ${esc(s.name)}">
       <button class="rm" type="button" data-rmrow="services" data-i="${i}" aria-label="ลบ ${esc(s.name)}">×</button></div>`).join('');
+  renderCustEditor();
   $$('[data-shop]').forEach(el => { const v = c.shop[el.dataset.shop]; if (el.type === 'checkbox') el.checked = !!v; else el.value = v ?? ''; });
   renderLogoPreview();
   setCfgState();
 }
+const openCusts = new Set();
+function renderCustEditor() {
+  const c = cfgDraft;
+  $('#setCusts').innerHTML = c.customers.length ? c.customers.map((cu, i) => {
+    const n = Object.keys(cu.rates || {}).length;
+    const f = (k, label, extra = '') => `<div class="field"><label for="cu${i}-${k}">${label}</label><input id="cu${i}-${k}" data-list="customers" data-i="${i}" data-k="${k}" value="${esc(cu[k] ?? '')}" ${extra}></div>`;
+    return `<details class="cust" data-ci="${i}" ${openCusts.has(cu.id) ? 'open' : ''}>
+      <summary><b>${esc(cu.name) || '(ลูกค้าใหม่)'}</b><span class="muted">${num(cu.discount) ? `ลด ${fmt0(cu.discount)}%` : 'ไม่มีส่วนลด %'}${n ? ` · ราคาพิเศษ ${n} วัสดุ` : ''}</span></summary>
+      <div class="cust-body">
+        <div class="row">${f('name', 'ชื่อลูกค้า / ร้าน', 'type="text"')}${f('phone', 'เบอร์โทร', 'type="text"')}</div>
+        ${f('addr', 'ที่อยู่', 'type="text"')}
+        <div class="row">${f('taxId', 'เลขผู้เสียภาษี', 'type="text" inputmode="numeric"')}${f('branch', 'สาขา', 'type="text"')}${f('discount', 'ส่วนลดทุกงาน (%)', 'type="number" min="0" max="100" step="1"')}</div>
+        <h3>ราคาพิเศษรายวัสดุ (บาท/ตร.ม.) เว้นว่างไว้ = ใช้ราคาปกติและส่วนลด %</h3>
+        <div class="rates">${c.materials.map(m => `<label class="rate" for="cu${i}-r-${esc(m.id)}"><span>${esc(m.name)}<br><small>ปกติ ${fmt0(m.price)}</small></span><input type="number" min="0" step="any" id="cu${i}-r-${esc(m.id)}" data-cust="${i}" data-rate="${esc(m.id)}" value="${cu.rates && cu.rates[m.id] != null ? esc(cu.rates[m.id]) : ''}" placeholder="${fmt0(m.price)}"></label>`).join('')}</div>
+        <div><button class="btn small danger" type="button" data-rmrow="customers" data-i="${i}">ลบลูกค้านี้</button></div>
+      </div></details>`;
+  }).join('') : '<div class="empty">ยังไม่มีลูกค้าประจำ กด “เพิ่มลูกค้าประจำ” หรือกด “บันทึกเป็นลูกค้าประจำ” ในหน้าใบเสนอราคา</div>';
+}
+$('#setCusts').addEventListener('toggle', e => {
+  const d = e.target.closest && e.target.closest('details.cust'); if (!d) return;
+  const cu = cfgDraft.customers[+d.dataset.ci]; if (!cu) return;
+  if (d.open) openCusts.add(cu.id); else openCusts.delete(cu.id);
+}, true);
 function renderLogoPreview() {
   const logo = cfgDraft.shop.logo;
   $('#logoPreview').innerHTML = logo ? `<img src="${esc(logo)}" alt="โลโก้บริษัท">` : '';
@@ -1029,7 +1129,7 @@ $('#addonList').addEventListener('change', e => {
   const id = e.target.value; calcS.addons = calcS.addons.filter(x => x !== id); if (e.target.checked) calcS.addons.push(id); saveCalc(); renderResult();
 });
 for (const [sel, key] of [['#cW', 'w'], ['#cH', 'h'], ['#cQty', 'qty'], ['#cSp', 'sp']]) $(sel).addEventListener('input', e => { calcS[key] = e.target.value; saveCalc(); renderResult(); });
-$$('.seg button').forEach(b => b.addEventListener('click', () => {
+$$('.seg button[data-unit]').forEach(b => b.addEventListener('click', () => {
   const u = b.dataset.unit; if (u === calcS.unit) return;
   const f = u === 'm' ? 0.01 : 100;
   calcS.w = +(num(calcS.w) * f).toFixed(3); calcS.h = +(num(calcS.h) * f).toFixed(3); calcS.unit = u; saveCalc(); renderCalcInputs(); renderResult();
@@ -1040,12 +1140,25 @@ $('#sizeChips').addEventListener('click', e => {
 });
 $('#qMinus').addEventListener('click', () => { calcS.qty = Math.max(1, (parseInt(calcS.qty) || 1) - 1); $('#cQty').value = calcS.qty; saveCalc(); renderResult(); });
 $('#qPlus').addEventListener('click', () => { calcS.qty = (parseInt(calcS.qty) || 0) + 1; $('#cQty').value = calcS.qty; saveCalc(); renderResult(); });
+$('#cCust').addEventListener('change', e => { calcS.cust = e.target.value; saveCalc(); renderMatList(); renderResult(); });
+$('#gotoCusts').addEventListener('click', () => setTimeout(() => $('#custHeading').scrollIntoView({ behavior: 'smooth', block: 'start' }), 60));
+$('#ovSeg').addEventListener('click', e => {
+  const b = e.target.closest('[data-ov]'); if (!b) return;
+  calcS.ov = b.dataset.ov; if (calcS.ov === 'none') calcS.ovVal = '';
+  saveCalc(); renderOv(); renderMatList(); renderResult(); if (calcS.ov !== 'none') $('#cOv').focus();
+});
+$('#cOv').addEventListener('input', e => { calcS.ovVal = e.target.value; saveCalc(); renderResult(); });
+function fillCustomer(cu) {
+  quote.customer = Object.assign({}, quote.customer, { name: cu.name || '', phone: cu.phone || '', addr: cu.addr || '', taxId: cu.taxId || '', branch: cu.branch || '' });
+}
 $('#addToQuote').addEventListener('click', () => {
   const r = compute(); if (!(r.area > 0)) return;
   const size = sizeStr(r, calcS.unit);
   const detail = [`ขนาด ${size} (${r.area.toFixed(2)} ตร.ม.)`, ...r.extras].join(' · ');
-  if (quote.example) { quote = blankDraft(); renderQuoteForm(); }
-  quote.items.push({ id: uid(), desc: r.m.name, detail, qty: r.qty, price: r.per, size, mat: r.m.name, finish: r.extras.join(' + '), area: +r.area.toFixed(4) });
+  if (quote.example) { quote = blankDraft(); }
+  if (r.cu && !quote.customer.name) fillCustomer(r.cu);
+  renderQuoteForm();
+  quote.items.push({ id: uid(), desc: r.m.name, detail, qty: r.qty, price: r.per, listPrice: r.normal, size, mat: r.m.name, finish: r.extras.join(' + '), area: +r.area.toFixed(4) });
   saveDraft(); renderItemsEd(); renderPaper(); renderPay(); renderResult();
   toast(`เพิ่มแล้ว ใบเสนอราคามี ${quote.items.length} รายการ`);
 });
@@ -1154,6 +1267,26 @@ $('#rcptPick').addEventListener('change', e => { receiptIdx = +e.target.value; r
 for (const [sel, k] of [['#jDue', 'due'], ['#jMachine', 'machine'], ['#jNote', 'note']]) $(sel).addEventListener('input', e => { quote.job = Object.assign({ due: '', machine: '', note: '' }, quote.job); quote.job[k] = e.target.value; renderPaper(); saveDraft(); });
 $('#histFilter').addEventListener('click', e => { const b = e.target.closest('[data-f]'); if (b) { histFilter = b.dataset.f; renderHistory(); } });
 
+$('#qCustPick').addEventListener('change', e => {
+  const cu = custOf(e.target.value); e.target.value = ''; if (!cu) return;
+  touchQuote(); fillCustomer(cu); calcS.cust = cu.id; saveCalc();
+  renderQuoteForm(); renderQuoteLive(); renderCalc();
+  toast(`ใช้ข้อมูล ${cu.name} แล้ว ราคาในหน้าคิดราคาเป็นราคาของลูกค้านี้`);
+});
+$('#saveAsCust').addEventListener('click', async () => {
+  const c0 = quote.customer || {}; const name = String(c0.name || '').trim();
+  if (!name || quote.example) { toast('ใส่ชื่อลูกค้าก่อน'); return; }
+  if (config.customers.some(x => x.name.trim() === name)) { toast('มีชื่อนี้ในลูกค้าประจำแล้ว'); return; }
+  const cu = { id: 'c' + uid(), name, phone: c0.phone || '', addr: c0.addr || '', taxId: c0.taxId || '', branch: c0.branch || '', discount: 0, rates: {} };
+  const c = clone(config); c.customers.push(cu);
+  try {
+    await persistConfig(c);
+    if (cfgDirty) { cfgDraft.customers.push(clone(cu)); renderSettings(); }
+    calcS.cust = cu.id; saveCalc(); renderCalc();
+    toast(`บันทึก ${name} เป็นลูกค้าประจำแล้ว ตั้งส่วนลดได้ที่แท็บตั้งค่า`);
+  } catch { toast('บันทึกไม่สำเร็จ ลองอีกครั้ง'); }
+});
+
 /* ---------- events: history ---------- */
 $('#hSearch').addEventListener('input', renderHistory);
 $('#histList').addEventListener('click', async e => {
@@ -1177,6 +1310,11 @@ $('#histList').addEventListener('click', async e => {
 /* ---------- events: prices ---------- */
 $('#tab-prices').addEventListener('input', e => {
   const el = e.target;
+  if (el.dataset.rate) {
+    const cu = cfgDraft.customers[+el.dataset.cust]; if (!cu) return; cu.rates = cu.rates || {};
+    if (el.value === '' || !(num(el.value) > 0)) delete cu.rates[el.dataset.rate]; else cu.rates[el.dataset.rate] = num(el.value);
+    markCfgDirty(); return;
+  }
   if (el.dataset.list) { const row = cfgDraft[el.dataset.list][+el.dataset.i]; if (!row) return; row[el.dataset.k] = (el.type === 'number') ? num(el.value) : el.value; markCfgDirty(); }
   else if (el.dataset.shop) { cfgDraft.shop[el.dataset.shop] = el.type === 'checkbox' ? el.checked : (el.dataset.num ? num(el.value) : el.value); markCfgDirty(); }
 });
@@ -1185,20 +1323,25 @@ $('#tab-prices').addEventListener('click', e => {
   const add = e.target.closest('[data-addrow]'), rm = e.target.closest('[data-rmrow]');
   if (add) {
     const L = add.dataset.addrow;
-    cfgDraft[L].push(L === 'materials' ? { id: 'm' + uid(), name: '', price: 0, min: 0 } : L === 'addons' ? { id: 'a' + uid(), name: '', type: 'pc', price: 0 } : { id: 's' + uid(), name: '', price: 0 });
+    const row = L === 'materials' ? { id: 'm' + uid(), name: '', price: 0, min: 0 } : L === 'addons' ? { id: 'a' + uid(), name: '', type: 'pc', price: 0 }
+      : L === 'customers' ? { id: 'c' + uid(), name: '', phone: '', addr: '', taxId: '', branch: '', discount: 0, rates: {} } : { id: 's' + uid(), name: '', price: 0 };
+    cfgDraft[L].push(row); if (L === 'customers') openCusts.add(row.id);
     markCfgDirty(); renderSettings(); const ins = $$(`[data-list="${L}"][data-k="name"]`); ins[ins.length - 1]?.focus();
   } else if (rm) { cfgDraft[rm.dataset.rmrow].splice(+rm.dataset.i, 1); markCfgDirty(); renderSettings(); }
 });
 $('#resetCfg').addEventListener('click', () => { cfgDirty = false; cfgDraft = clone(config); renderSettings(); });
+async function persistConfig(c) {
+  if (db) await db.doc('shop/config').set(c);
+  store.set('config', c);
+  config = normalizeCfg(c); applyConfig();
+}
 $('#saveCfg').addEventListener('click', async () => {
   const c = clone(cfgDraft); c.example = false;
-  for (const L of ['materials', 'addons', 'services']) c[L] = c[L].filter(x => String(x.name).trim());
+  for (const L of ['materials', 'addons', 'services', 'customers']) c[L] = (c[L] || []).filter(x => String(x.name).trim());
   const btn = $('#saveCfg'); btn.disabled = true;
   try {
-    if (db) await db.doc('shop/config').set(c);
-    store.set('config', c);
-    config = normalizeCfg(c); cfgDirty = false; applyConfig(); toast("บันทึกการตั้งค่าแล้ว");
-  } catch (err) { toast(err?.code === 'invalid_argument' ? 'บัญชีนี้ไม่มีสิทธิ์แก้ราคา' : 'บันทึกไม่สำเร็จ ลองอีกครั้ง'); }
+    cfgDirty = false; await persistConfig(c); toast("บันทึกการตั้งค่าแล้ว");
+  } catch (err) { cfgDirty = true; setCfgState(); toast(err?.code === 'invalid_argument' ? 'บัญชีนี้ไม่มีสิทธิ์แก้ราคา' : 'บันทึกไม่สำเร็จ ลองอีกครั้ง'); }
   finally { btn.disabled = false; }
 });
 
