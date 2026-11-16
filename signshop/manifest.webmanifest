@@ -1,12 +1,12 @@
 {
-  "name": "คิดราคาป้าย",
-  "short_name": "คิดราคาป้าย",
+  "name": "Total ad Sign · คิดราคาป้าย",
+  "short_name": "Total ad Sign",
   "lang": "th",
   "description": "คิดราคาป้าย ออกใบเสนอราคา ใบสั่งงานช่าง ติดตามมัดจำ",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#eceff3",
+  "background_color": "#ffffff",
   "theme_color": "#0a74b8",
   "icons": [
     {

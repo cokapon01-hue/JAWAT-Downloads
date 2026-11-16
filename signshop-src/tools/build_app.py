@@ -45,7 +45,7 @@ HEAD = f'''<!doctype html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>คิดราคาป้าย</title>
+<title>Total ad Sign · คิดราคาป้าย</title>
 <meta name="description" content="คิดราคาป้าย ออกใบเสนอราคา ใบสั่งงานช่าง ติดตามมัดจำ สำหรับร้านป้าย">
 <meta name="theme-color" content="#0a74b8">
 <meta name="app-version" content="{VERSION}">
@@ -54,7 +54,7 @@ HEAD = f'''<!doctype html>
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="คิดราคาป้าย">
+<meta name="apple-mobile-web-app-title" content="Total ad Sign">
 <link rel="stylesheet" href="fonts/fonts.css">
 <script src="vendor/html2canvas.min.js"></script>
 '''
@@ -225,10 +225,10 @@ open(os.path.join(OUT, 'index.html'), 'w', encoding='utf8').write(s)
 
 # ---------- manifest ----------
 manifest = {
-    "name": "คิดราคาป้าย", "short_name": "คิดราคาป้าย", "lang": "th",
+    "name": "Total ad Sign · คิดราคาป้าย", "short_name": "Total ad Sign", "lang": "th",
     "description": "คิดราคาป้าย ออกใบเสนอราคา ใบสั่งงานช่าง ติดตามมัดจำ",
     "start_url": "./", "scope": "./", "display": "standalone",
-    "background_color": "#eceff3", "theme_color": "#0a74b8",
+    "background_color": "#ffffff", "theme_color": "#0a74b8",
     "icons": [
         {"src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png"},
         {"src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png"},
