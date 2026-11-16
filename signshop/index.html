@@ -6,7 +6,7 @@
 <title>คิดราคาป้าย</title>
 <meta name="description" content="คิดราคาป้าย ออกใบเสนอราคา ใบสั่งงานช่าง ติดตามมัดจำ สำหรับร้านป้าย">
 <meta name="theme-color" content="#0a74b8">
-<meta name="app-version" content="1.0.0">
+<meta name="app-version" content="1.1.0">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -169,6 +169,21 @@ input[type="number"] { font-variant-numeric: tabular-nums; }
 .paper .ph { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; flex-wrap: wrap; }
 .paper .shop b { font-family: "Kanit", "Sarabun", sans-serif; font-weight: 600; font-size: 19px; display: block; line-height: 1.25; }
 .paper .shop div { font-size: 12px; color: #4a4f57; white-space: pre-line; }
+.paper .ph { flex-wrap: nowrap; }
+.paper .brand-blk { display: flex; gap: 12px; align-items: flex-start; min-width: 0; flex: 1 1 auto; }
+.paper .brand-blk img { max-height: 56px; max-width: 96px; object-fit: contain; flex: 0 0 auto; }
+.paper .doc-title { flex: 0 1 auto; max-width: 48%; }
+.paper .doc-title b { text-wrap: balance; }
+@media (max-width: 560px) { .paper .ph { flex-wrap: wrap; } .paper .doc-title { max-width: none; } }
+.paper .shop .co { color: var(--paper-ink); font-weight: 600; font-size: 12.5px; }
+.paper .paid-stamp { display: inline-block; border: 2px solid #1f7a4a; color: #1f7a4a; border-radius: 4px; padding: 2px 10px; font-weight: 700; font-size: 12px; letter-spacing: .5px; margin-top: 6px; }
+.paper .received { margin-top: 10px; font-size: 12.5px; }
+#paperSeg { display: flex; width: 100%; }
+#paperSeg button { flex: 1 1 0; padding: 10px 8px; }
+.logo-row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.logo-box { width: 140px; height: 70px; border: 1px dashed var(--line); border-radius: 8px; display: flex; align-items: center; justify-content: center; background: var(--paper); color: var(--muted); font-size: .8rem; overflow: hidden; }
+.logo-box img { max-width: 100%; max-height: 100%; object-fit: contain; }
+.pay .rc { border: 0; background: none; color: var(--accent); cursor: pointer; font-weight: 600; padding: 0 4px; }
 .paper .doc-title { text-align: right; }
 .paper .doc-title b { font-family: "Kanit", "Sarabun", sans-serif; font-weight: 600; font-size: 20px; display: block; line-height: 1.2; }
 .paper .doc-title span { font-size: 11px; letter-spacing: 2px; color: #4a4f57; }
@@ -298,7 +313,7 @@ input[type="number"] { font-variant-numeric: tabular-nums; }
       <a href="#calc" data-tab="calc">คิดราคา</a>
       <a href="#quote" data-tab="quote">ใบเสนอราคา<span class="count" id="itemCount">0</span></a>
       <a href="#history" data-tab="history">ใบที่บันทึกไว้</a>
-      <a href="#prices" data-tab="prices">ตั้งราคา</a>
+      <a href="#prices" data-tab="prices">ตั้งค่า</a>
     </nav>
   </div>
 </header>
@@ -306,7 +321,7 @@ input[type="number"] { font-variant-numeric: tabular-nums; }
 
 <main>
   <div class="wrap">
-    <div class="notice" id="exampleNotice">ราคาทั้งหมดตอนนี้เป็น<b>ราคาสมมติ</b> แก้เป็นราคาจริงของร้านได้ที่แท็บ <a href="#prices">ตั้งราคา</a></div>
+    <div class="notice" id="exampleNotice">ราคาทั้งหมดตอนนี้เป็น<b>ราคาสมมติ</b> แก้เป็นราคาจริงของร้านได้ที่แท็บ <a href="#prices">ตั้งค่า</a></div>
 
     <!-- ===== CALCULATOR ===== -->
     <section id="tab-calc" data-view="calc">
@@ -376,6 +391,10 @@ input[type="number"] { font-variant-numeric: tabular-nums; }
             <div class="field"><label for="qDate">วันที่</label><input type="date" id="qDate" style="width:100%;padding:9px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2)"></div>
           </div>
           <div class="field"><label for="qAddr">ที่อยู่ / หมายเหตุลูกค้า</label><input type="text" id="qAddr" autocomplete="off"></div>
+          <div class="row">
+            <div class="field" style="flex:2 1 200px"><label for="qTax">เลขผู้เสียภาษีลูกค้า (ถ้าลูกค้าเป็นบริษัท)</label><input type="text" id="qTax" autocomplete="off" inputmode="numeric"></div>
+            <div class="field"><label for="qBranch">สาขาลูกค้า</label><input type="text" id="qBranch" autocomplete="off" placeholder="สำนักงานใหญ่"></div>
+          </div>
 
           <h3>รายการ</h3>
           <div class="items" id="itemsEd"></div>
@@ -395,6 +414,7 @@ input[type="number"] { font-variant-numeric: tabular-nums; }
           <div class="next" id="payNext"></div>
           <div class="row">
             <div class="field" style="flex:0 1 150px"><label for="pType">ประเภท</label><select id="pType"><option>มัดจำ</option><option>ชำระเพิ่ม</option><option>ชำระส่วนที่เหลือ</option></select></div>
+            <div class="field" style="flex:0 1 130px"><label for="pMethod">ชำระโดย</label><select id="pMethod"><option>โอนเงิน</option><option>เงินสด</option><option>เช็ค</option><option>บัตรเครดิต</option></select></div>
             <div class="field"><label for="pAmt">รับจริง (บาท)</label><input type="number" id="pAmt" min="0" step="any" inputmode="decimal"></div>
             <button class="btn primary" id="addPay" type="button">บันทึกรับเงิน</button>
           </div>
@@ -408,7 +428,10 @@ input[type="number"] { font-variant-numeric: tabular-nums; }
             <button class="btn" id="copyText" type="button">คัดลอกข้อความส่ง LINE</button>
             <button class="btn" id="printBtn" type="button">พิมพ์ / PDF</button>
           </div>
-          <div class="seg" role="group" aria-label="เลือกเอกสาร" id="paperSeg"><button type="button" data-mode="quote" aria-pressed="true">ใบเสนอราคา</button><button type="button" data-mode="job" aria-pressed="false">ใบสั่งงานช่าง (ไม่มีราคา)</button></div>
+          <div class="seg" role="group" aria-label="เลือกเอกสาร" id="paperSeg"><button type="button" data-mode="quote" aria-pressed="true">ใบเสนอราคา</button><button type="button" data-mode="receipt" aria-pressed="false">ใบเสร็จรับเงิน</button><button type="button" data-mode="job" aria-pressed="false">ใบสั่งงานช่าง</button></div>
+          <div class="row" id="rcptFields" hidden>
+            <div class="field"><label for="rcptPick">ใบเสร็จของการรับเงินครั้งไหน</label><select id="rcptPick"></select></div>
+          </div>
           <div class="row" id="jobFields" hidden>
             <div class="field"><label for="jDue">นัดส่ง</label><input type="date" id="jDue" style="width:100%;padding:9px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2)"></div>
             <div class="field"><label for="jMachine">เครื่อง / ช่าง</label><input type="text" id="jMachine" placeholder="เช่น เครื่องพิมพ์ 1"></div>
@@ -451,15 +474,29 @@ input[type="number"] { font-variant-numeric: tabular-nums; }
         </div>
 
         <div class="card">
-          <h2>ข้อมูลร้าน (แสดงบนใบเสนอราคา)</h2>
-          <div class="field"><label for="sName">ชื่อร้าน</label><input type="text" id="sName" data-shop="name"></div>
+          <h2>ข้อมูลร้าน / บริษัท</h2>
+          <p class="muted" style="margin:0">แสดงที่หัวใบเสนอราคา ใบเสร็จรับเงิน และใบสั่งงานช่าง</p>
+          <div class="logo-row">
+            <div class="logo-box" id="logoPreview"></div>
+            <div class="actions">
+              <label class="btn small" for="sLogo">เลือกรูปโลโก้</label><input type="file" id="sLogo" accept="image/*" hidden>
+              <button class="btn small danger" type="button" id="rmLogo">ลบโลโก้</button>
+            </div>
+          </div>
+          <div class="field"><label for="sName">ชื่อร้าน (ตัวใหญ่บนหัวเอกสาร)</label><input type="text" id="sName" data-shop="name"></div>
+          <div class="row">
+            <div class="field" style="flex:2 1 220px"><label for="sCompany">ชื่อบริษัท / ชื่อจดทะเบียน (ถ้ามี)</label><input type="text" id="sCompany" data-shop="company" placeholder="เช่น บริษัท ป้ายดี จำกัด"></div>
+            <div class="field"><label for="sBranch">สาขา</label><input type="text" id="sBranch" data-shop="branch" placeholder="สำนักงานใหญ่"></div>
+          </div>
+          <div class="field"><label for="sTax">เลขประจำตัวผู้เสียภาษี 13 หลัก (ถ้ามี)</label><input type="text" id="sTax" data-shop="taxId" inputmode="numeric"></div>
           <div class="field"><label for="sAddr">ที่อยู่</label><textarea id="sAddr" rows="2" data-shop="address"></textarea></div>
           <div class="row">
             <div class="field"><label for="sPhone">โทร</label><input type="text" id="sPhone" data-shop="phone"></div>
             <div class="field"><label for="sLine">LINE</label><input type="text" id="sLine" data-shop="line"></div>
           </div>
-          <div class="field"><label for="sTax">เลขประจำตัวผู้เสียภาษี (ถ้ามี)</label><input type="text" id="sTax" data-shop="taxId"></div>
           <div class="field"><label for="sBank">บัญชีรับโอน</label><input type="text" id="sBank" data-shop="bank"></div>
+          <div class="field"><label for="sReceiver">ชื่อผู้รับเงิน (ลงท้ายใบเสร็จ)</label><input type="text" id="sReceiver" data-shop="receiver"></div>
+          <label class="toggle"><input type="checkbox" id="sVatReg" data-shop="vatReg"> จดทะเบียน VAT แล้ว (ใบเสร็จของงานที่คิด VAT จะออกเป็น ใบเสร็จรับเงิน/ใบกำกับภาษี)</label>
           <div class="field"><label for="sNote">เงื่อนไขเริ่มต้นท้ายใบ</label><textarea id="sNote" rows="3" data-shop="note"></textarea></div>
           <div class="row">
             <div class="field"><label for="sValid">ยืนราคา (วัน)</label><input type="number" id="sValid" min="1" data-shop="validDays" data-num="1"></div>
@@ -483,7 +520,7 @@ input[type="number"] { font-variant-numeric: tabular-nums; }
         </div>
       </div>
       <div class="savebar">
-        <button class="btn primary" id="saveCfg" type="button">บันทึกราคา</button>
+        <button class="btn primary" id="saveCfg" type="button">บันทึกการตั้งค่า</button>
         <button class="btn" id="resetCfg" type="button">ยกเลิกที่แก้</button>
         <span class="muted" id="cfgState"></span>
       </div>
@@ -547,7 +584,8 @@ const DEFAULT_CONFIG = {
     phone: '08x-xxx-xxxx', line: '@yourshop', taxId: '',
     bank: 'กสิกรไทย 000-0-00000-0 ชื่อบัญชี ร้านป้ายตัวอย่าง',
     note: 'ราคานี้รวมค่าออกแบบเบื้องต้น แก้แบบได้ 2 ครั้ง\nเริ่มผลิตหลังยืนยันแบบและชำระมัดจำ ใช้เวลา 1-3 วันทำการ',
-    validDays: 15, deposit: 50, vat: false, roundTo: 10
+    validDays: 15, deposit: 50, vat: false, roundTo: 10,
+    company: '', branch: '', receiver: '', vatReg: false, logo: ''
   },
   materials: [
     { id: 'vinyl', name: 'ไวนิล พิมพ์อิงค์เจ็ท', price: 180, min: 150 },
@@ -754,7 +792,8 @@ function renderPay() {
     <div class="tile ${t.bal > 0 && t.paid > 0 ? 'hot' : ''}"><span>ค้างชำระ</span><b>${fmt(t.bal)}</b></div>`;
   const nx = $('#payNext'); nx.className = 'next s-' + t.st; nx.textContent = t.msg;
   const pays = quote.payments || [];
-  $('#payList').innerHTML = pays.map((p, i) => `<div class="pay"><span>${thDate(p.date)} · ${esc(p.type)}</span><span>฿${fmt(p.amount)} <button class="rm" type="button" data-rmpay="${i}" aria-label="ลบรายการรับเงิน ${i + 1}">×</button></span></div>`).join('');
+  $('#payList').innerHTML = pays.map((p, i) => `<div class="pay"><span>${thDate(p.date)} · ${esc(p.type)}${p.method ? ` (${esc(p.method)})` : ''}</span><span>฿${fmt(p.amount)} <button class="rc" type="button" data-rcpt="${i}">ใบเสร็จ${p.receiptNo ? ' ' + esc(p.receiptNo) : ''}</button><button class="rm" type="button" data-rmpay="${i}" aria-label="ลบรายการรับเงิน ${i + 1}">×</button></span></div>`).join('');
+  renderRcptPick();
   const sug = t.paid < t.dep ? t.dep - t.paid : t.bal;
   $('#pAmt').placeholder = sug > 0 ? fmt0(sug) : '0';
   $('#pType').value = t.paid <= 0 && t.dep > 0 ? 'มัดจำ' : (t.paid >= t.dep ? 'ชำระส่วนที่เหลือ' : 'ชำระเพิ่ม');
@@ -769,6 +808,8 @@ function nextNo(dateIso) {
 function renderQuoteForm() {
   $('#qHeading').textContent = quote.id ? `แก้ไข ${quote.no}` : 'ใบเสนอราคาใหม่';
   $('#qName').value = quote.customer.name; $('#qPhone').value = quote.customer.phone; $('#qAddr').value = quote.customer.addr;
+  $('#qTax').value = quote.customer.taxId || ''; $('#qBranch').value = quote.customer.branch || '';
+  receiptIdx = -1;
   $('#qDate').value = quote.date; $('#qDisc').value = quote.discount || ''; $('#qDep').value = quote.deposit;
   $('#qVat').checked = !!quote.vat; $('#qNote').value = quote.note || '';
   const j = quote.job || {};
@@ -794,7 +835,82 @@ function renderItemsEd() {
 function renderSvcChips() {
   $('#svcChips').innerHTML = config.services.map((s, i) => `<button type="button" class="chip" data-svc="${i}">+ ${esc(s.name)} ${fmt0(s.price)}</button>`).join('');
 }
-let paperMode = 'quote';
+let paperMode = 'quote', receiptIdx = -1;
+/* shared document parts */
+function docHead(title, en, opts = {}) {
+  const s = config.shop;
+  const coLine = s.company ? `${s.company}${s.branch ? ` (${s.branch})` : ''}` : '';
+  const contact = opts.internal ? 'ใช้ภายในร้าน · ไม่แสดงราคา'
+    : [s.address, [s.phone && `โทร ${s.phone}`, s.line && `LINE ${s.line}`].filter(Boolean).join(' · '), s.taxId && `เลขประจำตัวผู้เสียภาษี ${s.taxId}${!s.company && s.branch ? ` (${s.branch})` : ''}`].filter(Boolean).join('\n');
+  return `<div class="ph">
+      <div class="brand-blk">${s.logo ? `<img src="${esc(s.logo)}" alt="">` : ''}<div class="shop"><b>${esc(s.name)}</b>${coLine && !opts.internal ? `<div class="co">${esc(coLine)}</div>` : ''}<div>${esc(contact)}</div></div></div>
+      <div class="doc-title"><b>${title}</b><span>${en}</span>${opts.stamp ? `<div><span class="paid-stamp">${opts.stamp}</span></div>` : ''}</div>
+    </div>
+    <div class="strip"><i></i><i></i><i></i><i></i></div>`;
+}
+function custBox(q, withTax) {
+  const c = q.customer || {};
+  return `<div class="box"><div class="k">ลูกค้า</div><b>${esc(c.name) || '-'}</b>${c.addr ? `<div>${esc(c.addr)}</div>` : ''}${c.phone ? `<div>โทร ${esc(c.phone)}</div>` : ''}${withTax && c.taxId ? `<div>เลขประจำตัวผู้เสียภาษี ${esc(c.taxId)}${c.branch ? ` (${esc(c.branch)})` : ''}</div>` : ''}</div>`;
+}
+function nextReceiptNo(dateIso) {
+  const d = new Date((dateIso || todayISO()) + 'T00:00:00');
+  const prefix = `RE${String((d.getFullYear() + 543) % 100).padStart(2, '0')}${String(d.getMonth() + 1).padStart(2, '0')}-`;
+  let max = 0;
+  const scan = q => (q.payments || []).forEach(p => { if (p.receiptNo && p.receiptNo.startsWith(prefix)) max = Math.max(max, parseInt(p.receiptNo.slice(prefix.length)) || 0); });
+  quotes.forEach(scan); scan(quote);
+  return prefix + String(max + 1).padStart(3, '0');
+}
+const isTaxInvoice = q => !!(config.shop.vatReg && config.shop.taxId && q.vat);
+function renderReceiptPaper() {
+  const s = config.shop, q = quote, pays = q.payments || [];
+  if (!pays.length) {
+    $('#paper').innerHTML = docHead('ใบเสร็จรับเงิน', 'RECEIPT') + `<div class="empty" style="margin:20px 0;color:#666;border-color:#ccc">ยังไม่มีการรับเงินในใบนี้<br>บันทึกรับเงินที่ส่วน “มัดจำ และยอดค้าง” ก่อน แล้วใบเสร็จจะขึ้นที่นี่</div>`;
+    return;
+  }
+  if (receiptIdx < 0 || receiptIdx >= pays.length) receiptIdx = pays.length - 1;
+  const p = pays[receiptIdx];
+  if (!p.receiptNo) { p.receiptNo = nextReceiptNo(p.date); saveDraft(); }
+  const t = totals(q), tax = isTaxInvoice(q);
+  const prev = pays.slice(0, receiptIdx).reduce((a, x) => a + num(x.amount), 0);
+  const amt = num(p.amount), left = Math.max(0, Math.round((t.grand - prev - amt) * 100) / 100);
+  const full = receiptIdx === 0 && amt >= t.grand - 0.004;
+  let rows;
+  if (full) {
+    rows = q.items.map((it, i) => `<tr><td class="c">${i + 1}</td><td>${esc(it.desc) || '-'}${it.detail ? `<small>${esc(it.detail)}</small>` : ''}</td><td class="num">${fmt0(it.qty)}</td><td class="num">${fmt(it.price)}</td><td class="num">${fmt(num(it.qty) * num(it.price))}</td></tr>`).join('');
+  } else {
+    const summary = q.items.map(it => `${it.desc}${num(it.qty) > 1 ? ` × ${fmt0(it.qty)}` : ''}`).join(', ');
+    rows = `<tr><td class="c">1</td><td>${esc(p.type)}ค่างาน ตามใบเสนอราคาเลขที่ ${esc(q.no || '-')}<small>${esc(summary)}</small></td><td class="num">1</td><td class="num">${fmt(amt)}</td><td class="num">${fmt(amt)}</td></tr>`;
+  }
+  const base = tax ? (full ? t.after : Math.round(amt * 10000 / 107) / 100) : 0;
+  const vat = tax ? (full ? t.vat : Math.round((amt - base) * 100) / 100) : 0;
+  const lines = full
+    ? `<div><span>รวมเป็นเงิน</span><span>${fmt(t.sub)}</span></div>${t.disc ? `<div><span>ส่วนลด</span><span>-${fmt(t.disc)}</span></div>` : ''}${tax || q.vat ? `<div><span>มูลค่าก่อนภาษี</span><span>${fmt(t.after)}</span></div><div><span>ภาษีมูลค่าเพิ่ม 7%</span><span>${fmt(t.vat)}</span></div>` : ''}<div class="grand"><span>รับชำระครั้งนี้</span><span>${fmt(amt)}</span></div>`
+    : `${tax ? `<div><span>มูลค่าก่อนภาษี</span><span>${fmt(base)}</span></div><div><span>ภาษีมูลค่าเพิ่ม 7%</span><span>${fmt(vat)}</span></div>` : ''}<div class="grand"><span>รับชำระครั้งนี้</span><span>${fmt(amt)}</span></div><div><span>ยอดงานทั้งหมด</span><span>${fmt(t.grand)}</span></div>${prev > 0 ? `<div><span>ชำระก่อนหน้า</span><span>${fmt(prev)}</span></div>` : ''}<div style="font-weight:700"><span>คงเหลือชำระ</span><span>${fmt(left)}</span></div>`;
+  $('#paper').innerHTML = docHead(tax ? 'ใบเสร็จรับเงิน / ใบกำกับภาษี' : 'ใบเสร็จรับเงิน', tax ? 'RECEIPT / TAX INVOICE' : 'RECEIPT', { stamp: left <= 0 ? 'ชำระครบแล้ว' : '' }) + `
+    <div class="meta">
+      ${custBox(q, true)}
+      <div class="box kv"><span>เลขที่</span><b>${esc(p.receiptNo)}</b><span>วันที่</span><span>${thDate(p.date)}</span><span>อ้างอิง</span><span>${esc(q.no || '-')}</span><span>ชำระโดย</span><span>${esc(p.method || 'โอนเงิน')}</span></div>
+    </div>
+    <table><thead><tr><th class="c" style="width:36px">#</th><th>รายการ</th><th class="num" style="width:56px">จำนวน</th><th class="num" style="width:96px">ราคา/หน่วย</th><th class="num" style="width:104px">จำนวนเงิน</th></tr></thead><tbody>${rows}</tbody></table>
+    <div class="tot">
+      <div class="baht"><span class="k">จำนวนเงินที่รับ (ตัวอักษร)</span>(${bahtText(amt)})</div>
+      <div class="lines">${lines}</div>
+    </div>
+    <div class="received">ได้รับเงินจำนวนข้างต้นไว้ถูกต้องแล้ว${p.method === 'เช็ค' ? ' (กรณีชำระด้วยเช็ค ใบเสร็จนี้สมบูรณ์เมื่อเรียกเก็บเงินได้แล้ว)' : ''}</div>
+    <div class="sign"><div>ผู้จ่ายเงิน</div><div>${s.receiver ? `${esc(s.receiver)}<br>` : ''}ผู้รับเงิน / วันที่ ${thDate(p.date)}</div></div>`;
+}
+function renderRcptPick() {
+  const pays = quote.payments || [];
+  if (receiptIdx < 0 || receiptIdx >= pays.length) receiptIdx = pays.length - 1;
+  $('#rcptPick').innerHTML = pays.map((p, i) => `<option value="${i}" ${i === receiptIdx ? 'selected' : ''}>${esc(p.receiptNo || 'ใบใหม่')} · ${thDate(p.date)} · ${esc(p.type)} ฿${fmt(p.amount)}</option>`).join('');
+  $('#rcptFields').hidden = paperMode !== 'receipt' || pays.length < 2;
+}
+function setPaperMode(m) {
+  paperMode = m;
+  $$('#paperSeg button').forEach(x => x.setAttribute('aria-pressed', x.dataset.mode === m));
+  $('#jobFields').hidden = m !== 'job';
+  renderRcptPick(); renderPaper();
+}
 function renderJobPaper() {
   const s = config.shop, q = quote, j = q.job || {};
   const jobNo = (q.no || nextNo(q.date)).replace(/^QT/, 'JOB');
@@ -802,14 +918,9 @@ function renderJobPaper() {
   const rows = signs.length ? signs.map((it, i) => `<tr><td class="c">${i + 1}</td><td><b>${esc(it.size)}</b></td><td class="c"><b>${fmt0(it.qty)}</b></td><td>${esc(it.mat || it.desc)}</td><td>${esc(it.finish || '-')}</td><td class="num">${it.area ? (num(it.area) * num(it.qty)).toFixed(2) : '-'}</td></tr>`).join('')
     : `<tr><td colspan="6" class="c" style="color:#888;padding:18px">ยังไม่มีป้ายที่มีขนาด เพิ่มจากแท็บคิดราคา</td></tr>`;
   const totalArea = signs.reduce((a, it) => a + num(it.area) * num(it.qty), 0);
-  $('#paper').innerHTML = `
-    <div class="ph">
-      <div class="shop"><b>${esc(s.name)}</b><div>ใช้ภายในร้าน · ไม่แสดงราคา</div></div>
-      <div class="doc-title"><b>ใบสั่งงานช่าง</b><span>WORK ORDER</span></div>
-    </div>
-    <div class="strip"><i></i><i></i><i></i><i></i></div>
+  $('#paper').innerHTML = docHead('ใบสั่งงานช่าง', 'WORK ORDER', { internal: true }) + `
     <div class="meta">
-      <div class="box"><div class="k">ลูกค้า</div><b>${esc(q.customer.name) || '-'}</b>${q.customer.phone ? `<div>โทร ${esc(q.customer.phone)}</div>` : ''}${q.customer.addr ? `<div>${esc(q.customer.addr)}</div>` : ''}</div>
+      ${custBox(q, false)}
       <div class="box kv"><span>เลขงาน</span><b>${esc(jobNo)}</b><span>วันรับงาน</span><span>${thDate(q.date)}</span><span>นัดส่ง</span><b>${j.due ? thDate(j.due) : '-'}</b><span>เครื่อง/ช่าง</span><span>${esc(j.machine) || '-'}</span></div>
     </div>
     <table><thead><tr><th class="c" style="width:32px">#</th><th>ขนาด</th><th class="c" style="width:56px">จำนวน</th><th>วัสดุ</th><th>งานเก็บ</th><th class="num" style="width:80px">พื้นที่รวม ตร.ม.</th></tr></thead><tbody>${rows}</tbody></table>
@@ -820,20 +931,16 @@ function renderJobPaper() {
 }
 function renderPaper() {
   if (paperMode === 'job') return renderJobPaper();
+  if (paperMode === 'receipt') return renderReceiptPaper();
   const s = config.shop, q = quote, t = totals(q);
   const valid = addDays(q.date || todayISO(), num(s.validDays) || 15);
-  const contact = [s.address, [s.phone && `โทร ${s.phone}`, s.line && `LINE ${s.line}`].filter(Boolean).join(' · '), s.taxId && `เลขผู้เสียภาษี ${s.taxId}`].filter(Boolean).join('\n');
   const rows = q.items.length ? q.items.map((it, i) => `<tr><td class="c">${i + 1}</td><td>${esc(it.desc) || '-'}${it.detail ? `<small>${esc(it.detail)}</small>` : ''}</td><td class="num">${fmt0(it.qty)}</td><td class="num">${fmt(it.price)}</td><td class="num">${fmt(num(it.qty) * num(it.price))}</td></tr>`).join('')
     : `<tr><td colspan="5" class="c" style="color:#888;padding:18px">ยังไม่มีรายการ</td></tr>`;
   $('#paper').innerHTML = `
     ${q.example ? '<div class="ex">ตัวอย่าง</div>' : ''}
-    <div class="ph">
-      <div class="shop"><b>${esc(s.name)}</b><div>${esc(contact)}</div></div>
-      <div class="doc-title"><b>ใบเสนอราคา</b><span>QUOTATION</span></div>
-    </div>
-    <div class="strip"><i></i><i></i><i></i><i></i></div>
+    ${docHead('ใบเสนอราคา', 'QUOTATION')}
     <div class="meta">
-      <div class="box"><div class="k">ลูกค้า</div><b>${esc(q.customer.name) || '-'}</b>${q.customer.phone ? `<div>โทร ${esc(q.customer.phone)}</div>` : ''}${q.customer.addr ? `<div>${esc(q.customer.addr)}</div>` : ''}</div>
+      ${custBox(q, true)}
       <div class="box kv"><span>เลขที่</span><b>${esc(q.no || nextNo(q.date))}</b><span>วันที่</span><span>${thDate(q.date)}</span><span>ยืนราคาถึง</span><span>${thDate(valid)}</span></div>
     </div>
     <table><thead><tr><th class="c" style="width:36px">#</th><th>รายการ</th><th class="num" style="width:56px">จำนวน</th><th class="num" style="width:96px">ราคา/หน่วย</th><th class="num" style="width:104px">จำนวนเงิน</th></tr></thead><tbody>${rows}</tbody></table>
@@ -905,8 +1012,41 @@ function renderSettings() {
       <input type="number" min="0" data-list="services" data-i="${i}" data-k="price" value="${esc(s.price)}" aria-label="ราคา ${esc(s.name)}">
       <button class="rm" type="button" data-rmrow="services" data-i="${i}" aria-label="ลบ ${esc(s.name)}">×</button></div>`).join('');
   $$('[data-shop]').forEach(el => { const v = c.shop[el.dataset.shop]; if (el.type === 'checkbox') el.checked = !!v; else el.value = v ?? ''; });
+  renderLogoPreview();
   setCfgState();
 }
+function renderLogoPreview() {
+  const logo = cfgDraft.shop.logo;
+  $('#logoPreview').innerHTML = logo ? `<img src="${esc(logo)}" alt="โลโก้ร้าน">` : 'ยังไม่มีโลโก้';
+  $('#rmLogo').hidden = !logo;
+}
+function shrinkImage(file, maxW = 480, maxH = 240) {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onerror = reject;
+    r.onload = () => {
+      const img = new Image();
+      img.onerror = reject;
+      img.onload = () => {
+        const k = Math.min(1, maxW / img.width, maxH / img.height);
+        const c = document.createElement('canvas');
+        c.width = Math.max(1, Math.round(img.width * k)); c.height = Math.max(1, Math.round(img.height * k));
+        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+        let url = c.toDataURL('image/png');
+        if (url.length > 150000) { const ctx = c.getContext('2d'); ctx.globalCompositeOperation = 'destination-over'; ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, c.width, c.height); url = c.toDataURL('image/jpeg', 0.85); }
+        resolve(url);
+      };
+      img.src = r.result;
+    };
+    r.readAsDataURL(file);
+  });
+}
+$('#sLogo').addEventListener('change', async e => {
+  const f = e.target.files && e.target.files[0]; e.target.value = ''; if (!f) return;
+  try { cfgDraft.shop.logo = await shrinkImage(f); markCfgDirty(); renderLogoPreview(); toast('ใส่โลโก้แล้ว กด “บันทึกการตั้งค่า” เพื่อใช้งาน'); }
+  catch { toast('เปิดรูปนี้ไม่ได้ ลองใช้ไฟล์ PNG หรือ JPG'); }
+});
+$('#rmLogo').addEventListener('click', () => { cfgDraft.shop.logo = ''; markCfgDirty(); renderLogoPreview(); });
 function setCfgState() { $('#cfgState').textContent = cfgDirty ? 'มีการแก้ไขที่ยังไม่บันทึก' : (mode === 'cloud' ? 'ราคาตรงกับที่บันทึกไว้' : 'ราคาเก็บไว้ในเครื่องนี้'); $('#resetCfg').disabled = !cfgDirty; }
 function markCfgDirty() { cfgDirty = true; setCfgState(); }
 
@@ -983,7 +1123,7 @@ $('#sizeTable').addEventListener('keydown', e => { const tr = e.target.closest('
 function pickSize(tr) { const f = calcS.unit === 'm' ? 0.01 : 1; calcS.w = +(tr.dataset.w * f).toFixed(3); calcS.h = +(tr.dataset.h * f).toFixed(3); saveCalc(); renderCalcInputs(); renderResult(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
 
 /* ---------- events: quote ---------- */
-const custMap = { '#qName': 'name', '#qPhone': 'phone', '#qAddr': 'addr' };
+const custMap = { '#qName': 'name', '#qPhone': 'phone', '#qAddr': 'addr', '#qTax': 'taxId', '#qBranch': 'branch' };
 for (const [sel, k] of Object.entries(custMap)) $(sel).addEventListener('input', e => { touchQuote(); quote.customer[k] = e.target.value; renderQuoteLive(); });
 $('#qDate').addEventListener('input', e => { quote.date = e.target.value || todayISO(); renderQuoteLive(); });
 $('#qDisc').addEventListener('input', e => { quote.discount = num(e.target.value); renderQuoteLive(); });
@@ -1043,7 +1183,8 @@ $('#saveImg').addEventListener('click', async () => {
     try { await document.fonts.ready; } catch {}
     const canvas = await window.html2canvas($('#paper'), { scale: 2, backgroundColor: '#ffffff', windowWidth: 1100, onclone: d => d.getElementById('paper').classList.add('export') });
     const blob = await new Promise(r => canvas.toBlob(r, 'image/png'));
-    const name = `${paperMode === 'job' ? (quote.no || nextNo(quote.date)).replace(/^QT/, 'JOB') : (quote.no || nextNo(quote.date))}.png`;
+    const rp = (quote.payments || [])[receiptIdx];
+    const name = `${paperMode === 'job' ? (quote.no || nextNo(quote.date)).replace(/^QT/, 'JOB') : paperMode === 'receipt' && rp ? rp.receiptNo : (quote.no || nextNo(quote.date))}.png`;
     if (blob) {
       const file = new File([blob], name, { type: 'image/png' });
       if (matchMedia('(pointer: coarse)').matches && navigator.canShare && navigator.canShare({ files: [file] })) {
@@ -1061,21 +1202,25 @@ $('#addPay').addEventListener('click', async () => {
   if (!(amt > 0)) { toast('ใส่จำนวนเงินที่รับจริงก่อน'); return; }
   if (!quote.items.length) { toast('ยังไม่มีรายการในใบนี้'); return; }
   touchQuote();
-  quote.payments = (quote.payments || []).concat({ id: uid(), date: todayISO(), type: $('#pType').value, amount: amt });
+  const rno = nextReceiptNo(todayISO());
+  quote.payments = (quote.payments || []).concat({ id: uid(), date: todayISO(), type: $('#pType').value, method: $('#pMethod').value, amount: amt, receiptNo: rno });
+  receiptIdx = quote.payments.length - 1;
   $('#pAmt').value = '';
   renderPay(); renderPaper(); saveDraft();
-  await persistQuote(`รับเงิน ฿${fmt(amt)} แล้ว`);
+  await persistQuote(`รับเงิน ฿${fmt(amt)} แล้ว · ใบเสร็จ ${rno}`);
 });
 $('#payList').addEventListener('click', async e => {
+  const rc = e.target.closest('[data-rcpt]');
+  if (rc) { receiptIdx = +rc.dataset.rcpt; setPaperMode('receipt'); $('#paper').scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
   const b = e.target.closest('[data-rmpay]'); if (!b) return;
   if (b.dataset.armed !== '1') { b.dataset.armed = '1'; b.textContent = 'ลบ?'; setTimeout(() => { if (b.isConnected) { b.dataset.armed = ''; b.textContent = '×'; } }, 3000); return; }
   quote.payments.splice(+b.dataset.rmpay, 1); renderPay(); renderPaper(); saveDraft();
   if (quote.id) await persistQuote('ลบรายการรับเงินแล้ว');
 });
 $('#paperSeg').addEventListener('click', e => {
-  const b = e.target.closest('[data-mode]'); if (!b) return; paperMode = b.dataset.mode;
-  $$('#paperSeg button').forEach(x => x.setAttribute('aria-pressed', x === b)); $('#jobFields').hidden = paperMode !== 'job'; renderPaper();
+  const b = e.target.closest('[data-mode]'); if (b) setPaperMode(b.dataset.mode);
 });
+$('#rcptPick').addEventListener('change', e => { receiptIdx = +e.target.value; renderPaper(); });
 for (const [sel, k] of [['#jDue', 'due'], ['#jMachine', 'machine'], ['#jNote', 'note']]) $(sel).addEventListener('input', e => { quote.job = Object.assign({ due: '', machine: '', note: '' }, quote.job); quote.job[k] = e.target.value; renderPaper(); saveDraft(); });
 $('#histFilter').addEventListener('click', e => { const b = e.target.closest('[data-f]'); if (b) { histFilter = b.dataset.f; renderHistory(); } });
 
@@ -1122,7 +1267,7 @@ $('#saveCfg').addEventListener('click', async () => {
   try {
     if (db) await db.doc('shop/config').set(c);
     store.set('config', c);
-    config = normalizeCfg(c); cfgDirty = false; applyConfig(); toast('บันทึกราคาแล้ว');
+    config = normalizeCfg(c); cfgDirty = false; applyConfig(); toast("บันทึกการตั้งค่าแล้ว");
   } catch (err) { toast(err?.code === 'invalid_argument' ? 'บัญชีนี้ไม่มีสิทธิ์แก้ราคา' : 'บันทึกไม่สำเร็จ ลองอีกครั้ง'); }
   finally { btn.disabled = false; }
 });
@@ -1132,8 +1277,8 @@ applyConfig(); renderQuoteForm(); renderPaper(); route();
 setMode('local', 'กำลังเชื่อมต่อ…');
 
 /* ---------- app: version, updates, backup ---------- */
-const APP_VERSION = '1.0.0';
-const CHANGELOG = [{"v": "1.0.0", "date": "2026-11-16", "items": ["คิดราคาป้ายตามขนาดและวัสดุ คิดให้ทั้ง ตร.ม. และ ตร.ฟุต นับจำนวนตาไก่ให้เอง", "ข้อความตอบลูกค้าทาง LINE กดคัดลอกได้ทันที", "ตารางราคาไซซ์ยอดนิยม", "ใบเสนอราคา บันทึกเป็นรูป หรือพิมพ์เป็น PDF ได้", "ใบสั่งงานช่าง (ไม่แสดงราคา)", "ติดตามมัดจำและยอดค้าง ระบบบอกขั้นตอนต่อไปให้", "สำรองและกู้คืนข้อมูลเป็นไฟล์", "ใช้งานได้แม้ไม่มีอินเทอร์เน็ต และอัปเดตเวอร์ชันใหม่ได้ด้วยปุ่มเดียว"]}];
+const APP_VERSION = '1.1.0';
+const CHANGELOG = [{"v": "1.1.0", "date": "2026-11-16", "items": ["ใบเสร็จรับเงิน: ออกได้ทุกครั้งที่รับเงิน (มัดจำ / ชำระเพิ่ม / ส่วนที่เหลือ) เลขที่ใบเสร็จรันอัตโนมัติ RE…", "ใบเสร็จรับเงิน/ใบกำกับภาษี สำหรับร้านที่จด VAT แยกมูลค่าก่อนภาษีและ VAT ให้", "ตั้งค่าข้อมูลบริษัท: ชื่อบริษัท สาขา เลขผู้เสียภาษี ชื่อผู้รับเงิน และใส่โลโก้ร้านได้ (แสดงบนเอกสารทุกใบ)", "ใส่เลขผู้เสียภาษีและสาขาของลูกค้าได้", "บันทึกวิธีชำระเงิน (โอน เงินสด เช็ค บัตร)", "แท็บ “ตั้งราคา” เปลี่ยนชื่อเป็น “ตั้งค่า”"]}, {"v": "1.0.0", "date": "2026-11-16", "items": ["คิดราคาป้ายตามขนาดและวัสดุ คิดให้ทั้ง ตร.ม. และ ตร.ฟุต นับจำนวนตาไก่ให้เอง", "ข้อความตอบลูกค้าทาง LINE กดคัดลอกได้ทันที", "ตารางราคาไซซ์ยอดนิยม", "ใบเสนอราคา บันทึกเป็นรูป หรือพิมพ์เป็น PDF ได้", "ใบสั่งงานช่าง (ไม่แสดงราคา)", "ติดตามมัดจำและยอดค้าง ระบบบอกขั้นตอนต่อไปให้", "สำรองและกู้คืนข้อมูลเป็นไฟล์", "ใช้งานได้แม้ไม่มีอินเทอร์เน็ต และอัปเดตเวอร์ชันใหม่ได้ด้วยปุ่มเดียว"]}];
 function downloadBlob(blob, name) {
   const url = URL.createObjectURL(blob); const a = document.createElement('a');
   a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
