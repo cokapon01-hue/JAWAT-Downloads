@@ -6,7 +6,7 @@
 <title>Total ad Sign · คิดราคาป้าย</title>
 <meta name="description" content="คิดราคาป้าย ออกใบเสนอราคา ใบสั่งงานช่าง ติดตามมัดจำ สำหรับร้านป้าย">
 <meta name="theme-color" content="#0a74b8">
-<meta name="app-version" content="1.4.0">
+<meta name="app-version" content="1.5.0">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -181,9 +181,14 @@ input[type="number"] { font-variant-numeric: tabular-nums; }
 .toggle input { width: 18px; height: 18px; accent-color: var(--accent); }
 
 /* paper */
-.paper-scroll { overflow-x: auto; border-radius: 6px; }
-.paper { background: var(--paper); color: var(--paper-ink); font-family: "Sarabun", system-ui, sans-serif; padding: 28px; border-radius: 4px; box-shadow: 0 1px 2px rgba(0,0,0,.08), 0 8px 24px rgba(0,0,0,.08); font-size: 13px; line-height: 1.5; min-width: 0; position: relative; }
-.paper.export { width: 794px; box-shadow: none; border-radius: 0; padding: 40px 44px; }
+/* A4 = 210 x 297 mm = 794 x 1123 px at 96 dpi; the sheet keeps that size everywhere and is scaled to fit */
+.paper-scroll { overflow: hidden; border-radius: 4px; cursor: zoom-in; position: relative; }
+.paper-scroll.zoom { overflow: auto; cursor: zoom-out; }
+.paper-hint { font-size: .8rem; color: var(--muted); display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.paper { background: var(--paper); color: var(--paper-ink); font-family: "Sarabun", system-ui, sans-serif; width: 794px; min-height: 1123px; padding: 40px 44px; border-radius: 2px; box-shadow: 0 1px 2px rgba(0,0,0,.08), 0 8px 24px rgba(0,0,0,.08); font-size: 13px; line-height: 1.5; position: relative; display: flex; flex-direction: column; transform-origin: top left; }
+.paper.export { box-shadow: none; border-radius: 0; transform: none !important; }
+.paper .cont { font-size: 12px; color: #555; padding-bottom: 8px; margin-bottom: 10px; border-bottom: 1px solid var(--paper-line); }
+.paper .pgno { position: absolute; bottom: 16px; right: 44px; font-size: 10.5px; color: #888; }
 .paper .ph { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; flex-wrap: wrap; }
 .paper .shop b { font-family: "Kanit", "Sarabun", sans-serif; font-weight: 600; font-size: 19px; display: block; line-height: 1.25; }
 .paper .shop div { font-size: 12px; color: #4a4f57; white-space: pre-line; }
@@ -192,7 +197,6 @@ input[type="number"] { font-variant-numeric: tabular-nums; }
 .paper .brand-blk img { max-height: 72px; max-width: 110px; object-fit: contain; flex: 0 0 auto; }
 .paper .doc-title { flex: 0 1 auto; max-width: 48%; }
 .paper .doc-title b { text-wrap: balance; }
-@media (max-width: 560px) { .paper .ph { flex-wrap: wrap; } .paper .doc-title { max-width: none; } }
 .paper .shop .co { color: var(--paper-ink); font-weight: 600; font-size: 12.5px; }
 .paper .paid-stamp { display: inline-block; border: 2px solid #1f7a4a; color: #1f7a4a; border-radius: 4px; padding: 2px 10px; font-weight: 700; font-size: 12px; letter-spacing: .5px; margin-top: 6px; }
 .paper .received { margin-top: 10px; font-size: 12.5px; }
@@ -230,10 +234,9 @@ input[type="number"] { font-variant-numeric: tabular-nums; }
 .paper .baht .k { font-weight: 400; font-size: 11px; color: #5d636b; display: block; }
 .paper .notes { margin-top: 14px; font-size: 12px; white-space: pre-line; color: #333; }
 .paper .notes b { display: block; color: var(--paper-ink); }
-.paper .sign { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-top: 34px; text-align: center; font-size: 12px; }
+.paper .sign { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-top: auto; padding-top: 44px; text-align: center; font-size: 12px; }
 .paper .sign div { border-top: 1px dotted #888; padding-top: 6px; color: #444; }
 .paper .ex { position: absolute; top: 10px; right: 12px; font-size: 10px; color: #b23; letter-spacing: .5px; }
-@media (max-width: 560px) { .paper { padding: 18px 14px; } .paper .meta, .paper .tot { grid-template-columns: minmax(0, 1fr); } .paper .doc-title { text-align: left; } }
 
 /* history */
 .hist { display: flex; flex-direction: column; gap: 8px; }
@@ -309,13 +312,16 @@ input[type="number"] { font-variant-numeric: tabular-nums; }
 .whatsnew h3 { margin-top: 6px; }
 .backup-state { padding: 10px 12px; border-radius: 8px; background: var(--surface-2); border: 1px solid var(--line); font-size: .92rem; }
 .backup-state.old { border-color: var(--warn); color: var(--warn); }
+#printRoot { display: none; }
 @media print {
-  @page { size: A4; margin: 12mm; }
-  body { background: #fff !important; }
-  body * { visibility: hidden !important; }
-  #paper, #paper * { visibility: visible !important; }
-  #paper { position: absolute; left: 0; top: 0; width: 100%; box-shadow: none !important; padding: 0 !important; border-radius: 0; }
-  .paper-scroll { overflow: visible !important; }
+  @page { size: A4 portrait; margin: 0; }
+  :root { padding: 0 !important; }
+  html, body { background: #fff !important; margin: 0 !important; }
+  body > *:not(#printRoot):not(.measure-host) { display: none !important; }
+  #printRoot { display: block !important; }
+  #printRoot .paper { width: 210mm !important; height: 296.8mm !important; min-height: 0 !important; overflow: hidden; padding: 10.5mm 11.6mm !important; transform: none !important; box-shadow: none !important; border-radius: 0 !important; break-after: page; page-break-after: always; }
+  #printRoot .paper:last-child { break-after: auto; page-break-after: auto; }
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }
 /* overlay & toast */
 .overlay { position: fixed; inset: 0; background: rgba(0,0,0,.6); display: flex; align-items: center; justify-content: center; padding: max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(16px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); z-index: 50; }
@@ -478,7 +484,8 @@ input[type="number"] { font-variant-numeric: tabular-nums; }
             <div class="field"><label for="jMachine">เครื่อง / ช่าง</label><input type="text" id="jMachine" placeholder="เช่น เครื่องพิมพ์ 1"></div>
             <div class="field" style="flex-basis:100%"><label for="jNote">หมายเหตุถึงช่าง</label><input type="text" id="jNote" placeholder="เช่น เผื่อขอบ 5 ซม. สำหรับพับ"></div>
           </div>
-          <div class="paper-scroll"><div class="paper" id="paper"></div></div>
+          <div class="paper-hint"><span>กระดาษ A4 (210 × 297 มม.)</span><span id="zoomHint">แตะกระดาษเพื่อขยาย</span></div>
+          <div class="paper-scroll" id="paperBox" title="แตะเพื่อขยาย / ย่อ"><div class="paper" id="paper"></div></div>
         </div>
       </div>
     </section>
@@ -1178,7 +1185,7 @@ function route() {
   $$('[data-view]').forEach(s => s.hidden = s.dataset.view !== v);
   $$('.tabs a').forEach(a => a.toggleAttribute('aria-current', false));
   const cur = document.querySelector(`.tabs a[data-tab="${v}"]`); if (cur) cur.setAttribute('aria-current', 'page');
-  if (v === 'quote') renderPaper();
+  if (v === 'quote') { renderPaper(); queueFit(); }
   if (v === 'history') renderHistory();
   if (v === 'calc') renderResult();
 }
@@ -1282,23 +1289,75 @@ $('#copyText').addEventListener('click', () => {
   if (s.bank) lines.push('', `โอนเข้า: ${s.bank}`);
   copy(lines.join('\n'));
 });
+/* split the sheet into A4 pages at table-row boundaries: header on page 1, table head repeated,
+   totals / notes / signatures on the last page, "หน้า x/y" on every page when there is more than one */
+const PAGE_H = 1123;
+function paginateSheet(src) {
+  const host = document.createElement('div'); host.className = 'measure-host';
+  host.style.cssText = 'position:absolute;left:-20000px;top:0;width:800px;';
+  document.body.appendChild(host);
+  const one = src.cloneNode(true); one.removeAttribute('id'); one.classList.add('export'); one.style.transform = '';
+  host.appendChild(one);
+  const table = one.querySelector(':scope > table');
+  if (one.scrollHeight <= PAGE_H + 1 || !table || !table.tBodies[0]) { one.style.height = one.scrollHeight <= PAGE_H + 1 ? PAGE_H + 'px' : ''; return { host, pages: [one] }; }
+  const kids = Array.from(one.children), ti = kids.indexOf(table);
+  const pre = kids.slice(0, ti), post = kids.slice(ti + 1), rows = Array.from(table.tBodies[0].rows);
+  const label = `${one.querySelector('.doc-title b')?.textContent || ''} ${one.querySelector('.kv b')?.textContent || ''}`.trim();
+  host.removeChild(one);
+  const pages = []; let pg, tb;
+  const fits = () => pg.scrollHeight <= PAGE_H - 18;  // leave room for the page number
+  const newPage = first => {
+    pg = one.cloneNode(false); pg.style.height = 'auto'; pg.style.minHeight = '0'; host.appendChild(pg); pages.push(pg);
+    if (first) pre.forEach(n => pg.appendChild(n));
+    else { const c = document.createElement('div'); c.className = 'cont'; c.textContent = `${label} (ต่อ)`; pg.appendChild(c); }
+  };
+  const newTable = () => { const t = table.cloneNode(false); if (table.tHead) t.appendChild(table.tHead.cloneNode(true)); tb = document.createElement('tbody'); t.appendChild(tb); pg.appendChild(t); };
+  newPage(true); newTable();
+  for (const r of rows) {
+    tb.appendChild(r);
+    if (!fits() && tb.rows.length > 1) { r.remove(); newPage(false); newTable(); tb.appendChild(r); }
+  }
+  post.forEach(n => pg.appendChild(n));
+  if (!fits()) { post.forEach(n => n.remove()); newPage(false); post.forEach(n => pg.appendChild(n)); }
+  pages.forEach((p, i) => { p.style.height = PAGE_H + 'px'; p.style.minHeight = ''; const f = document.createElement('div'); f.className = 'pgno'; f.textContent = `หน้า ${i + 1}/${pages.length}`; p.appendChild(f); });
+  return { host, pages };
+}
+/* cut a rendered page into A4 images (1588 x 2246 px at 2x); a paginated page gives exactly one */
+function a4Slices(cv) {
+  const W = cv.width, H = Math.round(W * 297 / 210);
+  const n = Math.max(1, Math.ceil((cv.height - 8) / H));
+  return Array.from({ length: n }, (_, i) => {
+    const c = document.createElement('canvas'); c.width = W; c.height = H;
+    const x = c.getContext('2d'); x.fillStyle = '#ffffff'; x.fillRect(0, 0, W, H);
+    const h = Math.min(H, cv.height - i * H); if (h > 0) x.drawImage(cv, 0, i * H, W, h, 0, 0, W, h);
+    return c;
+  });
+}
+async function deliverImages(files) {
+  const fs = files.map(f => new File([f.blob], f.name, { type: 'image/png' }));
+  if (matchMedia('(pointer: coarse)').matches && navigator.canShare && navigator.canShare({ files: fs })) {
+    try { await navigator.share({ files: fs, title: files[0].name }); return true; } catch (err) { if (err && err.name === 'AbortError') return true; }
+  }
+  files.forEach((f, i) => setTimeout(() => downloadBlob(f.blob, f.name), i * 400));
+  toast(files.length > 1 ? `บันทึกรูป A4 ${files.length} หน้าแล้ว` : 'บันทึกรูป A4 แล้ว'); return true;
+}
+/* end deliverImages */
 $('#saveImg').addEventListener('click', async () => {
   if (!window.html2canvas) { toast('ตัวสร้างรูปโหลดไม่สำเร็จ ลองเปิดโปรแกรมใหม่'); return; }
   const btn = $('#saveImg'); btn.disabled = true; btn.textContent = 'กำลังสร้างรูป…';
   try {
     try { await document.fonts.ready; } catch {}
-    const canvas = await window.html2canvas($('#paper'), { scale: 2, backgroundColor: '#ffffff', windowWidth: 1100, onclone: d => d.getElementById('paper').classList.add('export') });
-    const blob = await new Promise(r => canvas.toBlob(r, 'image/png'));
+    const { host, pages: sheets } = paginateSheet($('#paper'));
+    const pages = [];
+    try {
+      for (const sh of sheets) pages.push(...a4Slices(await window.html2canvas(sh, { scale: 2, backgroundColor: '#ffffff', windowWidth: 1100 })));
+    } finally { host.remove(); }
     const rp = (quote.payments || [])[receiptIdx];
-    const name = `${paperMode === 'job' ? (quote.no || nextNo(quote.date)).replace(/^QT/, 'JOB') : paperMode === 'receipt' && rp ? rp.receiptNo : (quote.no || nextNo(quote.date))}.png`;
-    if (blob) {
-      const file = new File([blob], name, { type: 'image/png' });
-      if (matchMedia('(pointer: coarse)').matches && navigator.canShare && navigator.canShare({ files: [file] })) {
-        try { await navigator.share({ files: [file], title: name }); return; } catch (err) { if (err && err.name === 'AbortError') return; }
-      }
-      downloadBlob(blob, name); toast('บันทึกรูปแล้ว'); return;
-    }
-    showOverlay(`<h2>รูปใบเสนอราคา</h2><p class="muted" style="margin:0">กดค้างที่รูปเพื่อบันทึก หรือคลิกขวาแล้วเลือกบันทึกรูป</p><img alt="ใบเสนอราคา ${esc(quote.no)}" src="${canvas.toDataURL('image/png')}">`);
+    const base = `${paperMode === 'job' ? (quote.no || nextNo(quote.date)).replace(/^QT/, 'JOB') : paperMode === 'receipt' && rp ? rp.receiptNo : (quote.no || nextNo(quote.date))}`;
+    const files = [];
+    for (let i = 0; i < pages.length; i++) files.push({ name: `${base}${pages.length > 1 ? `-p${i + 1}` : ''}.png`, canvas: pages[i], blob: await new Promise(r => pages[i].toBlob(r, 'image/png')) });
+    if (await deliverImages(files)) return;
+    showOverlay(`<h2>รูปเอกสาร A4${files.length > 1 ? ` (${files.length} หน้า)` : ''}</h2><p class="muted" style="margin:0">กดค้างที่รูปเพื่อบันทึก หรือคลิกขวาแล้วเลือกบันทึกรูป</p>${files.map(f => `<img alt="${esc(f.name)}" src="${f.canvas.toDataURL('image/png')}">`).join('')}`);
   } catch { toast('สร้างรูปไม่สำเร็จ'); }
   finally { btn.disabled = false; btn.textContent = 'บันทึกเป็นรูป'; }
 });
@@ -1448,13 +1507,31 @@ $('#saveCfg').addEventListener('click', async () => {
   finally { btn.disabled = false; }
 });
 
+/* ---------- A4 sheet fitting ---------- */
+function fitPaper() {
+  const box = $('#paperBox'), el = $('#paper'); if (!box || !el) return;
+  const w = box.clientWidth; if (!w) return;
+  const zoom = box.classList.contains('zoom'), k = zoom ? 1 : Math.min(1, w / 794);
+  el.style.transform = k < 1 ? `scale(${k})` : '';
+  box.style.height = Math.ceil(el.offsetHeight * k) + 'px';
+  $('#zoomHint').textContent = k < 1 || zoom ? (zoom ? 'แตะกระดาษเพื่อย่อ' : 'แตะกระดาษเพื่อขยาย') : '';
+}
+let fitQueued = false;
+const queueFit = () => { if (fitQueued) return; fitQueued = true; requestAnimationFrame(() => { fitQueued = false; fitPaper(); }); };
+if (window.ResizeObserver) { const ro = new ResizeObserver(queueFit); ro.observe($('#paper')); ro.observe($('#paperBox')); }
+window.addEventListener('resize', queueFit);
+$('#paperBox').addEventListener('click', e => {
+  const box = $('#paperBox'); if (box.clientWidth >= 794 && !box.classList.contains('zoom')) return;
+  box.classList.toggle('zoom'); fitPaper();
+});
+
 /* ---------- boot ---------- */
 applyConfig(); renderQuoteForm(); renderPaper(); route();
 setMode('local', 'กำลังเชื่อมต่อ…');
 
 /* ---------- app: version, updates, backup ---------- */
-const APP_VERSION = '1.4.0';
-const CHANGELOG = [{"v": "1.4.0", "date": "2026-11-16", "items": ["ลากเลื่อนลำดับวัสดุ งานเสริม และค่าบริการได้ (จับที่ ⋮⋮ แล้วลาก) ไม่ต้องลบแล้วพิมพ์ใหม่", "เจาะตาไก่ และพับขอบ ไม่คิดเงินแล้ว (แสดงว่า รวมในราคาแล้ว) ยังติ๊กได้เพื่อให้ช่างเห็นในใบสั่งงาน"]}, {"v": "1.3.0", "date": "2026-11-16", "items": ["ลูกค้าประจำ: ตั้งส่วนลด % ทุกงาน หรือราคาพิเศษรายวัสดุ (บาท/ตร.ม.) ได้ที่แท็บตั้งค่า", "หน้าคิดราคา: เลือกลูกค้าแล้วราคาเปลี่ยนให้เอง แสดงราคาปกติขีดฆ่าและยอดที่ลูกค้าประหยัด", "ราคาพิเศษเฉพาะงาน: ลด % / ราคาต่อ ตร.ม. เอง / ราคาเหมาต่อชิ้น", "ใบเสนอราคา: เลือกลูกค้าประจำเพื่อกรอกชื่อ เบอร์ ที่อยู่ เลขผู้เสียภาษีให้เอง และบันทึกลูกค้าใหม่เป็นลูกค้าประจำได้ในปุ่มเดียว", "แก้ปัญหา: กดสลับ ใบเสนอราคา / ใบเสร็จ / ใบสั่งงานช่าง แล้วขนาดป้ายในหน้าคิดราคาเพี้ยน (คูณ 100)"]}, {"v": "1.2.1", "date": "2026-11-16", "items": ["ล็อคที่อยู่บริษัท 101/5 หมู่ที่ 1 ตำบลคูคต อำเภอลำลูกกา จังหวัดปทุมธานี 12130 แสดงบนเอกสารทุกใบ"]}, {"v": "1.2.0", "date": "2026-11-16", "items": ["ล็อคชื่อ บริษัท โททอล แอด ไซน์ จำกัด และโลโก้ Total ad Sign ไว้ในโปรแกรม แสดงบนเอกสารทุกใบ", "ไอคอนแอปและหัวโปรแกรมเปลี่ยนเป็นโลโก้ Total ad Sign"]}, {"v": "1.1.0", "date": "2026-11-16", "items": ["ใบเสร็จรับเงิน: ออกได้ทุกครั้งที่รับเงิน (มัดจำ / ชำระเพิ่ม / ส่วนที่เหลือ) เลขที่ใบเสร็จรันอัตโนมัติ RE…", "ใบเสร็จรับเงิน/ใบกำกับภาษี สำหรับร้านที่จด VAT แยกมูลค่าก่อนภาษีและ VAT ให้", "ตั้งค่าข้อมูลบริษัท: ชื่อบริษัท สาขา เลขผู้เสียภาษี ชื่อผู้รับเงิน และใส่โลโก้ร้านได้ (แสดงบนเอกสารทุกใบ)", "ใส่เลขผู้เสียภาษีและสาขาของลูกค้าได้", "บันทึกวิธีชำระเงิน (โอน เงินสด เช็ค บัตร)", "แท็บ “ตั้งราคา” เปลี่ยนชื่อเป็น “ตั้งค่า”"]}, {"v": "1.0.0", "date": "2026-11-16", "items": ["คิดราคาป้ายตามขนาดและวัสดุ คิดให้ทั้ง ตร.ม. และ ตร.ฟุต นับจำนวนตาไก่ให้เอง", "ข้อความตอบลูกค้าทาง LINE กดคัดลอกได้ทันที", "ตารางราคาไซซ์ยอดนิยม", "ใบเสนอราคา บันทึกเป็นรูป หรือพิมพ์เป็น PDF ได้", "ใบสั่งงานช่าง (ไม่แสดงราคา)", "ติดตามมัดจำและยอดค้าง ระบบบอกขั้นตอนต่อไปให้", "สำรองและกู้คืนข้อมูลเป็นไฟล์", "ใช้งานได้แม้ไม่มีอินเทอร์เน็ต และอัปเดตเวอร์ชันใหม่ได้ด้วยปุ่มเดียว"]}];
+const APP_VERSION = '1.5.0';
+const CHANGELOG = [{"v": "1.5.0", "date": "2026-11-16", "items": ["ล็อคเอกสารเป็นกระดาษ A4 (210 × 297 มม.) ทั้งบนจอ รูปที่บันทึก/ส่ง และตอนพิมพ์", "รูปที่บันทึกเป็นขนาด A4 เสมอ (1588 × 2246 พิกเซล)", "รายการยาวเกิน 1 หน้า แบ่งหน้าให้เอง ไม่ตัดกลางแถว หัวตารางขึ้นทุกหน้า มีเลขหน้า และยอดรวมกับช่องลงชื่ออยู่หน้าสุดท้าย", "พิมพ์ / PDF เป็น A4 แนวตั้ง ช่องลงชื่ออยู่ท้ายหน้ากระดาษเสมอ", "บนมือถือ แตะกระดาษเพื่อขยายดูขนาดจริง"]}, {"v": "1.4.0", "date": "2026-11-16", "items": ["ลากเลื่อนลำดับวัสดุ งานเสริม และค่าบริการได้ (จับที่ ⋮⋮ แล้วลาก) ไม่ต้องลบแล้วพิมพ์ใหม่", "เจาะตาไก่ และพับขอบ ไม่คิดเงินแล้ว (แสดงว่า รวมในราคาแล้ว) ยังติ๊กได้เพื่อให้ช่างเห็นในใบสั่งงาน"]}, {"v": "1.3.0", "date": "2026-11-16", "items": ["ลูกค้าประจำ: ตั้งส่วนลด % ทุกงาน หรือราคาพิเศษรายวัสดุ (บาท/ตร.ม.) ได้ที่แท็บตั้งค่า", "หน้าคิดราคา: เลือกลูกค้าแล้วราคาเปลี่ยนให้เอง แสดงราคาปกติขีดฆ่าและยอดที่ลูกค้าประหยัด", "ราคาพิเศษเฉพาะงาน: ลด % / ราคาต่อ ตร.ม. เอง / ราคาเหมาต่อชิ้น", "ใบเสนอราคา: เลือกลูกค้าประจำเพื่อกรอกชื่อ เบอร์ ที่อยู่ เลขผู้เสียภาษีให้เอง และบันทึกลูกค้าใหม่เป็นลูกค้าประจำได้ในปุ่มเดียว", "แก้ปัญหา: กดสลับ ใบเสนอราคา / ใบเสร็จ / ใบสั่งงานช่าง แล้วขนาดป้ายในหน้าคิดราคาเพี้ยน (คูณ 100)"]}, {"v": "1.2.1", "date": "2026-11-16", "items": ["ล็อคที่อยู่บริษัท 101/5 หมู่ที่ 1 ตำบลคูคต อำเภอลำลูกกา จังหวัดปทุมธานี 12130 แสดงบนเอกสารทุกใบ"]}, {"v": "1.2.0", "date": "2026-11-16", "items": ["ล็อคชื่อ บริษัท โททอล แอด ไซน์ จำกัด และโลโก้ Total ad Sign ไว้ในโปรแกรม แสดงบนเอกสารทุกใบ", "ไอคอนแอปและหัวโปรแกรมเปลี่ยนเป็นโลโก้ Total ad Sign"]}, {"v": "1.1.0", "date": "2026-11-16", "items": ["ใบเสร็จรับเงิน: ออกได้ทุกครั้งที่รับเงิน (มัดจำ / ชำระเพิ่ม / ส่วนที่เหลือ) เลขที่ใบเสร็จรันอัตโนมัติ RE…", "ใบเสร็จรับเงิน/ใบกำกับภาษี สำหรับร้านที่จด VAT แยกมูลค่าก่อนภาษีและ VAT ให้", "ตั้งค่าข้อมูลบริษัท: ชื่อบริษัท สาขา เลขผู้เสียภาษี ชื่อผู้รับเงิน และใส่โลโก้ร้านได้ (แสดงบนเอกสารทุกใบ)", "ใส่เลขผู้เสียภาษีและสาขาของลูกค้าได้", "บันทึกวิธีชำระเงิน (โอน เงินสด เช็ค บัตร)", "แท็บ “ตั้งราคา” เปลี่ยนชื่อเป็น “ตั้งค่า”"]}, {"v": "1.0.0", "date": "2026-11-16", "items": ["คิดราคาป้ายตามขนาดและวัสดุ คิดให้ทั้ง ตร.ม. และ ตร.ฟุต นับจำนวนตาไก่ให้เอง", "ข้อความตอบลูกค้าทาง LINE กดคัดลอกได้ทันที", "ตารางราคาไซซ์ยอดนิยม", "ใบเสนอราคา บันทึกเป็นรูป หรือพิมพ์เป็น PDF ได้", "ใบสั่งงานช่าง (ไม่แสดงราคา)", "ติดตามมัดจำและยอดค้าง ระบบบอกขั้นตอนต่อไปให้", "สำรองและกู้คืนข้อมูลเป็นไฟล์", "ใช้งานได้แม้ไม่มีอินเทอร์เน็ต และอัปเดตเวอร์ชันใหม่ได้ด้วยปุ่มเดียว"]}];
 function downloadBlob(blob, name) {
   const url = URL.createObjectURL(blob); const a = document.createElement('a');
   a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
@@ -1470,7 +1547,14 @@ $('#appVer').textContent = 'v' + APP_VERSION;
 setMode('local', 'เก็บข้อมูลในเครื่องนี้');
 (() => { const last = store.get('lastVersion'); if (last && last !== APP_VERSION) showWhatsNew(last); store.set('lastVersion', APP_VERSION); })();
 $('#showNews').addEventListener('click', () => showWhatsNew(null));
-$('#printBtn').addEventListener('click', () => window.print());
+function fillPrint() {
+  let root = document.getElementById('printRoot');
+  if (!root) { root = document.createElement('div'); root.id = 'printRoot'; document.body.appendChild(root); }
+  const { host, pages } = paginateSheet($('#paper'));
+  root.replaceChildren(...pages); host.remove();
+}
+window.addEventListener('beforeprint', fillPrint);
+$('#printBtn').addEventListener('click', () => { fillPrint(); window.print(); });
 try { navigator.storage && navigator.storage.persist && navigator.storage.persist(); } catch {}
 
 /* backup */

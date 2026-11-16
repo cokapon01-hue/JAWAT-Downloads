@@ -166,9 +166,14 @@ input[type="number"] { font-variant-numeric: tabular-nums; }
 .toggle input { width: 18px; height: 18px; accent-color: var(--accent); }
 
 /* paper */
-.paper-scroll { overflow-x: auto; border-radius: 6px; }
-.paper { background: var(--paper); color: var(--paper-ink); font-family: "Sarabun", system-ui, sans-serif; padding: 28px; border-radius: 4px; box-shadow: 0 1px 2px rgba(0,0,0,.08), 0 8px 24px rgba(0,0,0,.08); font-size: 13px; line-height: 1.5; min-width: 0; position: relative; }
-.paper.export { width: 794px; box-shadow: none; border-radius: 0; padding: 40px 44px; }
+/* A4 = 210 x 297 mm = 794 x 1123 px at 96 dpi; the sheet keeps that size everywhere and is scaled to fit */
+.paper-scroll { overflow: hidden; border-radius: 4px; cursor: zoom-in; position: relative; }
+.paper-scroll.zoom { overflow: auto; cursor: zoom-out; }
+.paper-hint { font-size: .8rem; color: var(--muted); display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.paper { background: var(--paper); color: var(--paper-ink); font-family: "Sarabun", system-ui, sans-serif; width: 794px; min-height: 1123px; padding: 40px 44px; border-radius: 2px; box-shadow: 0 1px 2px rgba(0,0,0,.08), 0 8px 24px rgba(0,0,0,.08); font-size: 13px; line-height: 1.5; position: relative; display: flex; flex-direction: column; transform-origin: top left; }
+.paper.export { box-shadow: none; border-radius: 0; transform: none !important; }
+.paper .cont { font-size: 12px; color: #555; padding-bottom: 8px; margin-bottom: 10px; border-bottom: 1px solid var(--paper-line); }
+.paper .pgno { position: absolute; bottom: 16px; right: 44px; font-size: 10.5px; color: #888; }
 .paper .ph { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; flex-wrap: wrap; }
 .paper .shop b { font-family: "Kanit", "Sarabun", sans-serif; font-weight: 600; font-size: 19px; display: block; line-height: 1.25; }
 .paper .shop div { font-size: 12px; color: #4a4f57; white-space: pre-line; }
@@ -177,7 +182,6 @@ input[type="number"] { font-variant-numeric: tabular-nums; }
 .paper .brand-blk img { max-height: 72px; max-width: 110px; object-fit: contain; flex: 0 0 auto; }
 .paper .doc-title { flex: 0 1 auto; max-width: 48%; }
 .paper .doc-title b { text-wrap: balance; }
-@media (max-width: 560px) { .paper .ph { flex-wrap: wrap; } .paper .doc-title { max-width: none; } }
 .paper .shop .co { color: var(--paper-ink); font-weight: 600; font-size: 12.5px; }
 .paper .paid-stamp { display: inline-block; border: 2px solid #1f7a4a; color: #1f7a4a; border-radius: 4px; padding: 2px 10px; font-weight: 700; font-size: 12px; letter-spacing: .5px; margin-top: 6px; }
 .paper .received { margin-top: 10px; font-size: 12.5px; }
@@ -215,10 +219,9 @@ input[type="number"] { font-variant-numeric: tabular-nums; }
 .paper .baht .k { font-weight: 400; font-size: 11px; color: #5d636b; display: block; }
 .paper .notes { margin-top: 14px; font-size: 12px; white-space: pre-line; color: #333; }
 .paper .notes b { display: block; color: var(--paper-ink); }
-.paper .sign { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-top: 34px; text-align: center; font-size: 12px; }
+.paper .sign { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-top: auto; padding-top: 44px; text-align: center; font-size: 12px; }
 .paper .sign div { border-top: 1px dotted #888; padding-top: 6px; color: #444; }
 .paper .ex { position: absolute; top: 10px; right: 12px; font-size: 10px; color: #b23; letter-spacing: .5px; }
-@media (max-width: 560px) { .paper { padding: 18px 14px; } .paper .meta, .paper .tot { grid-template-columns: minmax(0, 1fr); } .paper .doc-title { text-align: left; } }
 
 /* history */
 .hist { display: flex; flex-direction: column; gap: 8px; }
@@ -441,7 +444,8 @@ input[type="number"] { font-variant-numeric: tabular-nums; }
             <div class="field"><label for="jMachine">เครื่อง / ช่าง</label><input type="text" id="jMachine" placeholder="เช่น เครื่องพิมพ์ 1"></div>
             <div class="field" style="flex-basis:100%"><label for="jNote">หมายเหตุถึงช่าง</label><input type="text" id="jNote" placeholder="เช่น เผื่อขอบ 5 ซม. สำหรับพับ"></div>
           </div>
-          <div class="paper-scroll"><div class="paper" id="paper"></div></div>
+          <div class="paper-hint"><span>กระดาษ A4 (210 × 297 มม.)</span><span id="zoomHint">แตะกระดาษเพื่อขยาย</span></div>
+          <div class="paper-scroll" id="paperBox" title="แตะเพื่อขยาย / ย่อ"><div class="paper" id="paper"></div></div>
         </div>
       </div>
     </section>
@@ -1130,7 +1134,7 @@ function route() {
   $$('[data-view]').forEach(s => s.hidden = s.dataset.view !== v);
   $$('.tabs a').forEach(a => a.toggleAttribute('aria-current', false));
   const cur = document.querySelector(`.tabs a[data-tab="${v}"]`); if (cur) cur.setAttribute('aria-current', 'page');
-  if (v === 'quote') renderPaper();
+  if (v === 'quote') { renderPaper(); queueFit(); }
   if (v === 'history') renderHistory();
   if (v === 'calc') renderResult();
 }
@@ -1234,21 +1238,76 @@ $('#copyText').addEventListener('click', () => {
   if (s.bank) lines.push('', `โอนเข้า: ${s.bank}`);
   copy(lines.join('\n'));
 });
+/* split the sheet into A4 pages at table-row boundaries: header on page 1, table head repeated,
+   totals / notes / signatures on the last page, "หน้า x/y" on every page when there is more than one */
+const PAGE_H = 1123;
+function paginateSheet(src) {
+  const host = document.createElement('div'); host.className = 'measure-host';
+  host.style.cssText = 'position:absolute;left:-20000px;top:0;width:800px;';
+  document.body.appendChild(host);
+  const one = src.cloneNode(true); one.removeAttribute('id'); one.classList.add('export'); one.style.transform = '';
+  host.appendChild(one);
+  const table = one.querySelector(':scope > table');
+  if (one.scrollHeight <= PAGE_H + 1 || !table || !table.tBodies[0]) { one.style.height = one.scrollHeight <= PAGE_H + 1 ? PAGE_H + 'px' : ''; return { host, pages: [one] }; }
+  const kids = Array.from(one.children), ti = kids.indexOf(table);
+  const pre = kids.slice(0, ti), post = kids.slice(ti + 1), rows = Array.from(table.tBodies[0].rows);
+  const label = `${one.querySelector('.doc-title b')?.textContent || ''} ${one.querySelector('.kv b')?.textContent || ''}`.trim();
+  host.removeChild(one);
+  const pages = []; let pg, tb;
+  const fits = () => pg.scrollHeight <= PAGE_H - 18;  // leave room for the page number
+  const newPage = first => {
+    pg = one.cloneNode(false); pg.style.height = 'auto'; pg.style.minHeight = '0'; host.appendChild(pg); pages.push(pg);
+    if (first) pre.forEach(n => pg.appendChild(n));
+    else { const c = document.createElement('div'); c.className = 'cont'; c.textContent = `${label} (ต่อ)`; pg.appendChild(c); }
+  };
+  const newTable = () => { const t = table.cloneNode(false); if (table.tHead) t.appendChild(table.tHead.cloneNode(true)); tb = document.createElement('tbody'); t.appendChild(tb); pg.appendChild(t); };
+  newPage(true); newTable();
+  for (const r of rows) {
+    tb.appendChild(r);
+    if (!fits() && tb.rows.length > 1) { r.remove(); newPage(false); newTable(); tb.appendChild(r); }
+  }
+  post.forEach(n => pg.appendChild(n));
+  if (!fits()) { post.forEach(n => n.remove()); newPage(false); post.forEach(n => pg.appendChild(n)); }
+  pages.forEach((p, i) => { p.style.height = PAGE_H + 'px'; p.style.minHeight = ''; const f = document.createElement('div'); f.className = 'pgno'; f.textContent = `หน้า ${i + 1}/${pages.length}`; p.appendChild(f); });
+  return { host, pages };
+}
+/* cut a rendered page into A4 images (1588 x 2246 px at 2x); a paginated page gives exactly one */
+function a4Slices(cv) {
+  const W = cv.width, H = Math.round(W * 297 / 210);
+  const n = Math.max(1, Math.ceil((cv.height - 8) / H));
+  return Array.from({ length: n }, (_, i) => {
+    const c = document.createElement('canvas'); c.width = W; c.height = H;
+    const x = c.getContext('2d'); x.fillStyle = '#ffffff'; x.fillRect(0, 0, W, H);
+    const h = Math.min(H, cv.height - i * H); if (h > 0) x.drawImage(cv, 0, i * H, W, h, 0, 0, W, h);
+    return c;
+  });
+}
+async function deliverImages(files) {
+  let dl = null; try { dl = await window.claude?.use?.('downloads'); } catch {}
+  if (!dl) return false;
+  for (const f of files) {
+    try { await dl.save({ filename: f.name, data: f.blob }); }
+    catch (err) { return err?.code === 'declined'; }
+  }
+  toast(files.length > 1 ? `บันทึกรูป A4 ${files.length} หน้าแล้ว` : 'บันทึกรูป A4 แล้ว'); return true;
+}
+/* end deliverImages */
 $('#saveImg').addEventListener('click', async () => {
   if (!window.html2canvas) { toast('ตัวสร้างรูปยังโหลดไม่เสร็จ ลองใหม่อีกครั้ง'); return; }
   const btn = $('#saveImg'); btn.disabled = true; btn.textContent = 'กำลังสร้างรูป…';
   try {
     try { await document.fonts.ready; } catch {}
-    const canvas = await window.html2canvas($('#paper'), { scale: 2, backgroundColor: '#ffffff', windowWidth: 1100, onclone: d => d.getElementById('paper').classList.add('export') });
-    const blob = await new Promise(r => canvas.toBlob(r, 'image/png'));
+    const { host, pages: sheets } = paginateSheet($('#paper'));
+    const pages = [];
+    try {
+      for (const sh of sheets) pages.push(...a4Slices(await window.html2canvas(sh, { scale: 2, backgroundColor: '#ffffff', windowWidth: 1100 })));
+    } finally { host.remove(); }
     const rp = (quote.payments || [])[receiptIdx];
-    const name = `${paperMode === 'job' ? (quote.no || nextNo(quote.date)).replace(/^QT/, 'JOB') : paperMode === 'receipt' && rp ? rp.receiptNo : (quote.no || nextNo(quote.date))}${quote.customer.name ? '-' + quote.customer.name.replace(/[\\/:*?"<>|]/g, '').slice(0, 40) : ''}.png`;
-    let dl = null; try { dl = await window.claude?.use?.('downloads'); } catch {}
-    if (dl && blob) {
-      try { await dl.save({ filename: name, data: blob }); toast('บันทึกรูปแล้ว'); return; }
-      catch (err) { if (err?.code === 'declined') return; }
-    }
-    showOverlay(`<h2>รูปใบเสนอราคา</h2><p class="muted" style="margin:0">กดค้างที่รูปเพื่อบันทึก หรือคลิกขวาแล้วเลือกบันทึกรูป</p><img alt="ใบเสนอราคา ${esc(quote.no)}" src="${canvas.toDataURL('image/png')}">`);
+    const base = `${paperMode === 'job' ? (quote.no || nextNo(quote.date)).replace(/^QT/, 'JOB') : paperMode === 'receipt' && rp ? rp.receiptNo : (quote.no || nextNo(quote.date))}${quote.customer.name ? '-' + quote.customer.name.replace(/[\\/:*?"<>|]/g, '').slice(0, 40) : ''}`;
+    const files = [];
+    for (let i = 0; i < pages.length; i++) files.push({ name: `${base}${pages.length > 1 ? `-p${i + 1}` : ''}.png`, canvas: pages[i], blob: await new Promise(r => pages[i].toBlob(r, 'image/png')) });
+    if (await deliverImages(files)) return;
+    showOverlay(`<h2>รูปเอกสาร A4${files.length > 1 ? ` (${files.length} หน้า)` : ''}</h2><p class="muted" style="margin:0">กดค้างที่รูปเพื่อบันทึก หรือคลิกขวาแล้วเลือกบันทึกรูป</p>${files.map(f => `<img alt="${esc(f.name)}" src="${f.canvas.toDataURL('image/png')}">`).join('')}`);
   } catch { toast('สร้างรูปไม่สำเร็จ'); }
   finally { btn.disabled = false; btn.textContent = 'บันทึกเป็นรูป'; }
 });
@@ -1396,6 +1455,24 @@ $('#saveCfg').addEventListener('click', async () => {
     cfgDirty = false; await persistConfig(c); toast("บันทึกการตั้งค่าแล้ว");
   } catch (err) { cfgDirty = true; setCfgState(); toast(err?.code === 'invalid_argument' ? 'บัญชีนี้ไม่มีสิทธิ์แก้ราคา' : 'บันทึกไม่สำเร็จ ลองอีกครั้ง'); }
   finally { btn.disabled = false; }
+});
+
+/* ---------- A4 sheet fitting ---------- */
+function fitPaper() {
+  const box = $('#paperBox'), el = $('#paper'); if (!box || !el) return;
+  const w = box.clientWidth; if (!w) return;
+  const zoom = box.classList.contains('zoom'), k = zoom ? 1 : Math.min(1, w / 794);
+  el.style.transform = k < 1 ? `scale(${k})` : '';
+  box.style.height = Math.ceil(el.offsetHeight * k) + 'px';
+  $('#zoomHint').textContent = k < 1 || zoom ? (zoom ? 'แตะกระดาษเพื่อย่อ' : 'แตะกระดาษเพื่อขยาย') : '';
+}
+let fitQueued = false;
+const queueFit = () => { if (fitQueued) return; fitQueued = true; requestAnimationFrame(() => { fitQueued = false; fitPaper(); }); };
+if (window.ResizeObserver) { const ro = new ResizeObserver(queueFit); ro.observe($('#paper')); ro.observe($('#paperBox')); }
+window.addEventListener('resize', queueFit);
+$('#paperBox').addEventListener('click', e => {
+  const box = $('#paperBox'); if (box.clientWidth >= 794 && !box.classList.contains('zoom')) return;
+  box.classList.toggle('zoom'); fitPaper();
 });
 
 /* ---------- boot ---------- */

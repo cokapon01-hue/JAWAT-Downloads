@@ -77,13 +77,16 @@ rep("/* overlay & toast */", """/* app bar: update / install */
 .whatsnew h3 { margin-top: 6px; }
 .backup-state { padding: 10px 12px; border-radius: 8px; background: var(--surface-2); border: 1px solid var(--line); font-size: .92rem; }
 .backup-state.old { border-color: var(--warn); color: var(--warn); }
+#printRoot { display: none; }
 @media print {
-  @page { size: A4; margin: 12mm; }
-  body { background: #fff !important; }
-  body * { visibility: hidden !important; }
-  #paper, #paper * { visibility: visible !important; }
-  #paper { position: absolute; left: 0; top: 0; width: 100%; box-shadow: none !important; padding: 0 !important; border-radius: 0; }
-  .paper-scroll { overflow: visible !important; }
+  @page { size: A4 portrait; margin: 0; }
+  :root { padding: 0 !important; }
+  html, body { background: #fff !important; margin: 0 !important; }
+  body > *:not(#printRoot):not(.measure-host) { display: none !important; }
+  #printRoot { display: block !important; }
+  #printRoot .paper { width: 210mm !important; height: 296.8mm !important; min-height: 0 !important; overflow: hidden; padding: 10.5mm 11.6mm !important; transform: none !important; box-shadow: none !important; border-radius: 0 !important; break-after: page; page-break-after: always; }
+  #printRoot .paper:last-child { break-after: auto; page-break-after: auto; }
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }
 /* overlay & toast */""")
 
@@ -113,16 +116,17 @@ rep("""      <div class="savebar">""", """      <div class="card" style="margin-
       </div>
       <div class="savebar">""")
 
-# image: share on phones, download elsewhere
-i = s.index("    let dl = null; try { dl = await window.claude?.use?.('downloads'); } catch {}")
-j = s.index("    showOverlay(`<h2>รูปใบเสนอราคา</h2>", i)
-s = s[:i] + """    if (blob) {
-      const file = new File([blob], name, { type: 'image/png' });
-      if (matchMedia('(pointer: coarse)').matches && navigator.canShare && navigator.canShare({ files: [file] })) {
-        try { await navigator.share({ files: [file], title: name }); return; } catch (err) { if (err && err.name === 'AbortError') return; }
-      }
-      downloadBlob(blob, name); toast('บันทึกรูปแล้ว'); return;
-    }
+# image: share on phones (all pages at once), download elsewhere
+i = s.index("async function deliverImages(files) {")
+j = s.index("/* end deliverImages */", i)
+s = s[:i] + """async function deliverImages(files) {
+  const fs = files.map(f => new File([f.blob], f.name, { type: 'image/png' }));
+  if (matchMedia('(pointer: coarse)').matches && navigator.canShare && navigator.canShare({ files: fs })) {
+    try { await navigator.share({ files: fs, title: files[0].name }); return true; } catch (err) { if (err && err.name === 'AbortError') return true; }
+  }
+  files.forEach((f, i) => setTimeout(() => downloadBlob(f.blob, f.name), i * 400));
+  toast(files.length > 1 ? `บันทึกรูป A4 ${files.length} หน้าแล้ว` : 'บันทึกรูป A4 แล้ว'); return true;
+}
 """ + s[j:]
 
 # replace the cloud-database boot block with the app runtime
@@ -146,7 +150,14 @@ $('#appVer').textContent = 'v' + APP_VERSION;
 setMode('local', 'เก็บข้อมูลในเครื่องนี้');
 (() => { const last = store.get('lastVersion'); if (last && last !== APP_VERSION) showWhatsNew(last); store.set('lastVersion', APP_VERSION); })();
 $('#showNews').addEventListener('click', () => showWhatsNew(null));
-$('#printBtn').addEventListener('click', () => window.print());
+function fillPrint() {
+  let root = document.getElementById('printRoot');
+  if (!root) { root = document.createElement('div'); root.id = 'printRoot'; document.body.appendChild(root); }
+  const { host, pages } = paginateSheet($('#paper'));
+  root.replaceChildren(...pages); host.remove();
+}
+window.addEventListener('beforeprint', fillPrint);
+$('#printBtn').addEventListener('click', () => { fillPrint(); window.print(); });
 try { navigator.storage && navigator.storage.persist && navigator.storage.persist(); } catch {}
 
 /* backup */
